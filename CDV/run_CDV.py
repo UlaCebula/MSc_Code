@@ -75,7 +75,7 @@ t = np.arange(t0,tf,dt)
 N = np.size(t)
 
 x = np.zeros((N,6))
-x[0,:] = np.array([.11,.22,.33,.44,.55,.66])
+x[0,:] = np.array([.11,.22,.33,.44,.55,.66]) # initial condition
 
 for i in range(N-1):
     q = CDV_dt(x[i:i+1,:])
