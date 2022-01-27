@@ -3,8 +3,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.sparse import coo_matrix
-from LA_tesselation import tesselate
+from my_func import tesselate, trans_matrix
 
 
 def LA_dt(x): # explicit Euler scheme
@@ -19,6 +18,7 @@ sigma = 10
 b = 8/3
 r = 28
 
+# time discretization
 t0 = 0.0
 tf = 100.0
 dt = 0.01
@@ -32,21 +32,25 @@ for i in range(N-1):
     q = LA_dt(x[i,:])
     x[i+1,:] = x[i,:] + dt*q
 
+# Visualize data
 ax = plt.figure().add_subplot(projection='3d')
 ax.plot(x[:,0], x[:,1], x[:,2], lw=0.5)
 ax.set_xlabel("X Axis")
 ax.set_ylabel("Y Axis")
 ax.set_zlabel("Z Axis")
 ax.set_title("Lorenz Attractor")
-
 plt.show()
 
-N = 10000  # number of divisions for tesselation, uniform for all dimensions
-tess_ind = tesselate(x,N)    # output - for sparse approach -indices of occupied spaces, for non-sparse approach - matrix with occupied spaces
-# A = coo_matrix(ind, np.ones(N), shape=(N * 3)) # create sparse matrix at given indices
 
-#for visualization only - works only for the 3d case
-# full coorindate arrays
-ax = plt.axes(projection='3d')
-ax.scatter3D(tess_ind[:,0], tess_ind[:,1], tess_ind[:,2])
-plt.show()
+# Tesselation
+N = 20  # number of divisions for tesselation, uniform for all dimensions
+tess_ind = tesselate(x,N)    # output - indices of occupied spaces (sparse matrix)
+
+# for visualization only - works only for the 3d case
+# ax = plt.axes(projection='3d')
+# ax.scatter3D(tess_ind[:,0], tess_ind[:,1], tess_ind[:,2])
+# plt.show()
+
+# Transition probability
+P = trans_matrix(tess_ind)  # create sparse transition probability matrix
+# print(np.max(P[:,6]), np.min(P[:,6])) # just checking
