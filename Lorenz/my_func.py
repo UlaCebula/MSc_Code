@@ -3,6 +3,12 @@
 import numpy as np
 
 def tesselate(x,N):
+    """ Tesselate data points x into space defined by N spaces in each direction
+
+    :param x: vector of point coordinates in consequent time steps
+    :param N: number of discretsations in each direction
+    :return: returns matrix tess_ind which includes the indices of the box taken by the data points in consequent time steps
+    """
     dim = int(np.size(x[0,:])) # dimensions
     # dx = 1/N*np.ones(dim)
     y = np.zeros_like(x)
@@ -17,10 +23,17 @@ def tesselate(x,N):
         point_ind[point_ind==N] = N-1   # for all point located at the very end (max) - put them in the last cell
         tess_ind = np.vstack([tess_ind, point_ind])   # sparse approach, translate the points into the indices of the tesselation
         # to get the tesselated space, just take the unique rows of tess_ind
-    return  tess_ind    # returns indices of occupied spaces, without values
+    return tess_ind    # returns indices of occupied spaces, without values
 
 
 def trans_matrix(tess_ind):
+    """Computes transition probability matrix of tesselated data.
+
+    :param tess_ind: matrix which includes the indices of the box taken by the data points in consequent time steps, can
+    be obtained from the tesselate(x,N) function
+    :return : returns sparse transition probability matrix P, where a row contains the coordinate of the point i to which
+    the transition occurs, point j from which the transition occurs and the value of probability of the transition
+    """
     dim = int(np.size(tess_ind[0, :]))  # dimensions
     P = np.empty((0,2*dim+1))   # probability matrix dim*2+1 for the value of the probability P[0,:] = [to_index(3), from_index(3), prob_value(1)]
     u_to,index_to, counts_to = np.unique(tess_ind, axis=0, return_index = True, return_counts = True)  # sorted points that are occupied at some point

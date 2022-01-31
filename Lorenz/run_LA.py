@@ -43,10 +43,10 @@ plt.show()
 
 
 # Tesselation
-N = 20  # number of divisions for tesselation, uniform for all dimensions
-tess_ind = tesselate(x,N)    # output - indices of occupied spaces (sparse matrix)
+M = 20  # number of divisions for tesselation, uniform for all dimensions
+tess_ind = tesselate(x,M)    # output - indices of occupied spaces (sparse matrix)
 
-# for visualization only - works only for the 3d case
+# # for visualization only - works only for the 3d case
 # ax = plt.axes(projection='3d')
 # ax.scatter3D(tess_ind[:,0], tess_ind[:,1], tess_ind[:,2])
 # plt.show()
