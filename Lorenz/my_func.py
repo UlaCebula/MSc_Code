@@ -1,6 +1,7 @@
 # tesselation and transition probability matrix
 # Urszula Golyska 2022
 import numpy as np
+from scipy import sparse
 
 def tesselate(x,N):
     """ Tesselate data points x into space defined by N spaces in each direction
@@ -52,3 +53,26 @@ def trans_matrix(tess_ind):
 
     # eliminate the initial conditions if its there - is this done?
     return P    # returns sparse transition probability matrix in the form (i,j,k,l,m,n,p[ij])
+
+def prob_to_sparse(P,N):
+    """"Translates the transition probability matrix of any dimensions into a python sparse 2D matrix
+
+    :param P: probability transition matrix as described in trans_matrix
+    :param N: number of discretsations in each direction
+    :return: returns python (scipy) sparse coordinate 2D matrix
+    """
+    dim = int((np.size(P[0, :])-1)/2)  # dimensions
+
+    data = P[:,-1]  # store probability data in separate vector and delete it from the probability matrix
+    P = np.delete(P, -1, axis=1)
+
+    # translate points into lexicographic order
+    for i in range(1,dim):  # loop through dimensions
+        P[:,i]=P[:,i]*N*i  # first point (to)
+        P[:,i+dim]=P[:,i+dim]*N*i   # second point (from)
+
+    row = np.sum(P[:,:dim], axis=1)
+    col = np.sum(P[:, dim:],axis=1)
+
+    P = sparse.coo_matrix((data, (row, col)), shape=(N * N, N * N)) # create sparse matrix
+    return P
