@@ -3,7 +3,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from my_func import tesselate, trans_matrix
+from my_func import tesselate, trans_matrix, prob_to_sparse
 
 
 def LA_dt(x): # explicit Euler scheme
@@ -39,8 +39,6 @@ ax.set_xlabel("X Axis")
 ax.set_ylabel("Y Axis")
 ax.set_zlabel("Z Axis")
 ax.set_title("Lorenz Attractor")
-plt.show()
-
 
 # Tesselation
 M = 20  # number of divisions for tesselation, uniform for all dimensions
@@ -54,3 +52,14 @@ tess_ind = tesselate(x,M)    # output - indices of occupied spaces (sparse matri
 # Transition probability
 P = trans_matrix(tess_ind)  # create sparse transition probability matrix
 # print(np.max(P[:,6]), np.min(P[:,6])) # just checking
+
+P = prob_to_sparse(P,M) # translate matrix into 2D sparse array with points in lexicographic order
+
+P = P.toarray()
+# print(P)
+
+# visualize probability matrix
+plt.figure(figsize=(7, 7))
+plt.imshow(P,interpolation='none', cmap='binary')
+plt.colorbar()
+plt.show()

@@ -74,5 +74,5 @@ def prob_to_sparse(P,N):
     row = np.sum(P[:,:dim], axis=1)
     col = np.sum(P[:, dim:],axis=1)
 
-    P = sparse.coo_matrix((data, (row, col)), shape=(N * N, N * N)) # create sparse matrix
+    P = sparse.coo_matrix((data, (row, col)), shape=(N**dim, N**dim)) # create sparse matrix
     return P
