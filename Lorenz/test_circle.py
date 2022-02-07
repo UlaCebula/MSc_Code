@@ -3,17 +3,20 @@ import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
 from my_func import tesselate, trans_matrix, prob_to_sparse
-import modularity_maximization as mm
+from modularity_maximization import modularity, spectralopt
 
 # time discretization
 t0 = 0.0
-tf = 100.0
+tf = 1000.0
 dt = 0.01
 t = np.arange(t0,tf,dt)
 
 # phase space
 u1 = np.sin(t)
 u2 = np.cos(t)
+
+# number of dimensions
+dim=2
 
 # generate random spurs
 for i in range(len(t)):
@@ -77,14 +80,29 @@ for i in range(len(P.row)):
 # print(P_graph)
 
 # visualize graph
-# plt.figure()
-# nx.draw(P_graph,with_labels=True)
+plt.figure()
+nx.draw(P_graph,with_labels=True)
 # plt.show()
 
 # clustering
-P_graph = mm.partition(P_graph) # partition community P, default with refinement
+P_community = spectralopt.partition(P_graph) # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
+# print all communities and their node entries
+nr_communities = int(np.size(np.unique(np.array(list(P_community.values())))))
+print('Total number of communities: ', nr_communities)
+D = np.zeros((N**dim, nr_communities))  # number of points by number of communities
+for com in np.unique(np.array(list(P_community.values()))):
+    print("Community: ", com)
+    print("Nodes: ",end='')
+    for key, value in P_community.items():
+        if value==com:
+            print(key,end=', ')
+            D[key,value] = 1  # to prescribe nodes to communities
+    print('')
 
-# visualize graph
-plt.figure()
-nx.draw(P_graph,with_labels=True)
-plt.show()
+# plt.show()
+# # now deflate the Markov matrix
+# # print(D)  # at the moment not sparse!!!
+#
+P1 = np.matmul(np.matmul(D.transpose(),P_dense),D)
+#
+print(P1)
