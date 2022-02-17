@@ -2,6 +2,7 @@
 # Urszula Golyska 2022
 import numpy as np
 from scipy import sparse
+import networkx as nx
 
 def tesselate(x,N):
     """ Tesselate data points x into space defined by N spaces in each direction
@@ -76,3 +77,46 @@ def prob_to_sparse(P,N):
 
     P = sparse.coo_matrix((data, (row, col)), shape=(N**dim, N**dim)) # create sparse matrix
     return P
+
+
+def community_aff(P_com, N, dim, printing):
+    """Creates a community affiliation matrix D, in which each point is matched with the cluster they were assigned to in the previous step
+
+    :param P_com: clustered community P
+    :param N: number of discretsations in each direction
+    :param dim: dimensions of the system
+    :param priting: bool parameter if the communities and their nodes should be printed on screen
+    :return: returns a dense Dirac matrix of the affiliation of points to the identified clusters
+    """
+    nr_communities = int(np.size(np.unique(np.array(list(P_com.values())))))
+    if printing:
+        # print all communities and their node entries
+        print('Total number of communities: ', nr_communities)
+
+    D = np.zeros((N ** dim, nr_communities))  # number of points by number of communities
+    for com in np.unique(np.array(list(P_com.values()))):
+        if printing:
+            print("Community: ", com)
+            print("Nodes: ", end='')
+        for key, value in P_com.items():
+            if value == com:
+                if printing:
+                    print(key, end=', ')
+                D[key, value] = 1  # to prescribe nodes to communities
+        if printing:
+            print('')
+    return D
+
+def to_graph(P):
+    """Translates a probability matrix into graph form
+
+    :param P: transition matrix (directed with weighted edges)
+    :return: returns graph version of matrix P
+    """
+    # translate to graph
+    P_graph = nx.DiGraph()
+    for i in range(len(P[:, 0])):
+        for j in range(len(P[0, :])):
+            if P[i, j] != 0:
+                P_graph.add_edge(i, j, weight=P[i, j])
+    return P_graph

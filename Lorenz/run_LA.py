@@ -3,8 +3,9 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-from my_func import tesselate, trans_matrix, prob_to_sparse
-
+from my_func import tesselate, trans_matrix, prob_to_sparse, to_graph, community_aff
+from modularity_maximization import spectralopt
+import networkx as nx
 
 def LA_dt(x): # explicit Euler scheme
     dxdt = np.zeros(x.shape)
@@ -20,12 +21,13 @@ r = 28
 
 # time discretization
 t0 = 0.0
-tf = 100.0
+tf = 100.0 # runtime around 15 min
 dt = 0.01
 t = np.arange(t0,tf,dt)
 N = np.size(t)
 
-x = np.zeros((N,3))
+dim=3   # three dimensional
+x = np.zeros((N,dim))
 x[0,:] = np.array([0, 1.0, 1.05]) # initial condition
 
 for i in range(N-1):
@@ -55,11 +57,36 @@ P = trans_matrix(tess_ind)  # create sparse transition probability matrix
 
 P = prob_to_sparse(P,M) # translate matrix into 2D sparse array with points in lexicographic order
 
-P = P.toarray()
+P_dense = P.toarray()
 # print(P)
 
 # visualize probability matrix
 plt.figure(figsize=(7, 7))
-plt.imshow(P,interpolation='none', cmap='binary')
+plt.imshow(P_dense,interpolation='none', cmap='binary')
 plt.colorbar()
+
+# clustering
+# translate to dict readable for partition function
+P_graph = to_graph(P.toarray())
+
+# visualize graph
+plt.figure()
+nx.draw_kamada_kawai(P_graph,with_labels=True)
+
+# clustering
+P_community = spectralopt.partition(P_graph) # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
+# print all communities and their node entries
+D = community_aff(P_community, M, dim, 1) # matrix of point-to-cluster affiliation
+
+# # now deflate the Markov matrix
+P1 = np.matmul(np.matmul(D.transpose(),P_dense),D)
+print(np.sum(P1,axis=1).tolist())
+
+# translate to graph
+P1_graph = to_graph(P1)
+
+# visualize graph
+plt.figure()
+nx.draw_kamada_kawai(P1_graph,with_labels=True)
 plt.show()
+
