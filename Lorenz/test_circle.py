@@ -51,7 +51,7 @@ u = np.hstack([np.reshape(u1, (len(t),1)),np.reshape(u2, (len(t),1))])
 
 # tesselate
 N = 20
-tess_ind = tesselate(u,N)
+tess_ind, extr_id = tesselate(u,N,0)    # where zero indicated the dimension by which the extreme event should be identified - here u1
 
 # tesselated space visualization
 # plt.figure(figsize=(7, 7))
@@ -65,7 +65,7 @@ tess_ind = tesselate(u,N)
 # break up process- first translate to 2d matrix, then count the probabilities, because we need the translated stated wrt t at the end
 # P = prob_backwards(tess_ind)    # create sparse transition probability matrix
 P = prob_classic(tess_ind)    # create sparse transition probability matrix
-P = prob_to_sparse(P,N) # translate matrix into 2D sparse array with points in lexicographic order
+(P, extr_trans) = prob_to_sparse(P,N, extr_id) # translate matrix into 2D sparse array with points in lexicographic order, translates extr_id to lexicographic id
 
 tess_ind_trans = np.zeros(len(tess_ind[:, 0]))
 for i in range(len(tess_ind[:, 0])):  # loop through all points
@@ -118,26 +118,12 @@ plt.figure()
 nx.draw_kamada_kawai(P1_graph,with_labels=True)
 
 # identify extreme event and transition to it
-# rescale probability matrix so that probabilities are one:
-# for i in range(len(P1[:,0])):
-#     P1[i,:] = P1[i,:]/np.sum(P1[i,:])
-# find transition to extreme event
-extreme_from = np.where(np.count_nonzero(P1.transpose(), axis=1)>2)    #will give the row
-extreme_from = int(extreme_from[0])
-extreme_to = np.where(P1.transpose()[extreme_from,:]==P1.transpose()[extreme_from,P1.transpose()[extreme_from,:].nonzero()].min())    # indentifies clusters from and to which we have the extreme event transition
-extreme_to = int(extreme_to[0])
-print(extreme_from, extreme_to)
+extreme_from, extreme_to, nodes_from, nodes_to = extr_iden_bif(P1,P_community)
+print(extreme_from, extreme_to, nodes_from, nodes_to)
 
-
-# on the same dataset, but cut shorter
-# nodes of cluster from and to - there has to be a better way for this
-nodes_from=[]
-nodes_to=[]
-for key, value in P_community.items():
-    if value == extreme_from:
-        nodes_from.append(key)
-    if value == extreme_to:
-        nodes_to.append(key)
+# from already calculated max amplitude spot
+extreme_from, extreme_to, nodes_from, nodes_to = extr_iden_amp(P_community, P1, extr_trans)
+print(extreme_from, extreme_to, nodes_from, nodes_to)
 
 # but we first have to translate the tess_inf matrix into the one with node numbers/lexicographic order
 # translate points into lexicographic order - there must be a better way, plus add this as a function and make such tahat it works for all dimensions

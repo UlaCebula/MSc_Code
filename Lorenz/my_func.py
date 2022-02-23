@@ -4,13 +4,16 @@ import numpy as np
 from scipy import sparse
 import networkx as nx
 
-def tesselate(x,N):
+def tesselate(x,N,ex_dim):
     """ Tesselate data points x into space defined by N spaces in each direction
 
     :param x: vector of point coordinates in consequent time steps
     :param N: number of discretsations in each direction
-    :return: returns matrix tess_ind which includes the indices of the box taken by the data points in consequent time steps
+    :param ex_dim: dimension by which the extreme event should be identified
+    :return: returns matrix tess_ind which includes the indices of the box taken by the data points in consequent time steps,
+    and the index of the identified extreme event
     """
+
     dim = int(np.size(x[0,:])) # dimensions
     # dx = 1/N*np.ones(dim)
     y = np.zeros_like(x)
@@ -25,30 +28,41 @@ def tesselate(x,N):
         point_ind[point_ind==N] = N-1   # for all point located at the very end (max) - put them in the last cell
         tess_ind = np.vstack([tess_ind, point_ind])   # sparse approach, translate the points into the indices of the tesselation
         # to get the tesselated space, just take the unique rows of tess_ind
-    return tess_ind    # returns indices of occupied spaces, without values
 
-def prob_to_sparse(P,N):
+    # find tesselated index of extreme event
+    # extr_tess=np.where(P1.transpose()[extreme_from, :] == P1.transpose()[extreme_from, P1.transpose()[extreme_from,:].nonzero()].min())
+    m = np.mean(x[:, ex_dim])   # mean of chosen parameter
+    extr_id = tess_ind[np.argmax(abs(x[:,ex_dim]-m)),:]
+
+    return tess_ind, extr_id    # returns indices of occupied spaces, without values and the index of the identified extreme event
+
+def prob_to_sparse(P,N, extr_id):
     """"Translates the transition probability matrix of any dimensions into a python sparse 2D matrix
 
     :param P: probability transition matrix as described in trans_matrix
     :param N: number of discretsations in each direction
-    :return: returns python (scipy) sparse coordinate 2D matrix
+    :param extr_id: index in the tesselated space of the identified extreme event
+    :return: returns python (scipy) sparse coordinate 2D matrix and the translated index of the extreme event
     """
     dim = int((np.size(P[0, :])-1)/2)  # dimensions
 
     data = P[:,-1]  # store probability data in separate vector and delete it from the probability matrix
     P = np.delete(P, -1, axis=1)
+    extr_trans = extr_id
 
     # translate points into lexicographic order
     for i in range(1,dim):  # loop through dimensions
         P[:,i]=P[:,i]*N*i  # first point (to)
         P[:,i+dim]=P[:,i+dim]*N*i   # second point (from)
+        extr_trans[i] = extr_trans[i]*N*i
 
     row = np.sum(P[:,:dim], axis=1)
     col = np.sum(P[:, dim:],axis=1)
+    extr_trans = np.sum(extr_trans)
 
     P = sparse.coo_matrix((data, (row, col)), shape=(N**dim, N**dim)) # create sparse matrix
-    return P
+
+    return P, extr_trans
 
 
 def community_aff(P_com, N, dim, printing):
@@ -151,3 +165,46 @@ def prob_backwards(tess_ind):
 
     # eliminate the initial conditions if its there - is this done?
     return P    # returns sparse transition probability matrix in the form (i,j,k,l,m,n,p[ij])
+
+
+def extr_iden_bif(P1,P_community):
+    """Finds the indices of the communities between which the transition to the extreme event occurs by identifying
+    bifurcation in the graph path
+
+    :param P1: deflated transition probability matrix
+    :param P_community: partition community with keys as nodes and values as clusters
+    :return: returns tuple  of index of clusters and nodes when the extreme event occurs
+    """
+    extreme_from = np.where(np.count_nonzero(P1.transpose(), axis=1) > 2)  # will give the row
+    extreme_from = int(extreme_from[0])
+    extreme_to = np.where(P1.transpose()[extreme_from, :] == P1.transpose()[extreme_from, P1.transpose()[extreme_from,
+                                                                                          :].nonzero()].min())  # indentifies clusters from and to which we have the extreme event transition
+    extreme_to = int(extreme_to[0])
+
+    nodes_from = []
+    nodes_to = []
+    for key, value in P_community.items():
+        if value == extreme_from:
+            nodes_from.append(key)
+        if value == extreme_to:
+            nodes_to.append(key)
+
+    return (extreme_from, extreme_to, nodes_from, nodes_to)
+
+def extr_iden_amp(P_community, P1, extr_trans):
+    nodes_from = []
+    nodes_to = [extr_trans]   # in this approach this is NOT in the clustered form
+    extreme_to = P_community[extr_trans]    # cluster
+    # other way around - from_trans will be the point that can translate to extr_trans (from P1 after clustering)
+    extreme_from = P1[extreme_to,:].nonzero()   # cluster from which we can transition to extreme event
+    extreme_from = extreme_from[0]
+    if extreme_to in extreme_from:      # remove the option of transitions within the cluster
+        extreme_from=np.delete(extreme_from, np.where(extreme_from==extreme_to))
+
+    for key, value in P_community.items():
+        if value == extreme_from:
+            nodes_from.append(key)
+        if value == extreme_to and key not in nodes_to:
+            nodes_to.append(key)
+
+    return (int(extreme_from), extreme_to, nodes_from, nodes_to)
