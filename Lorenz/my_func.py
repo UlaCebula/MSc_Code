@@ -166,6 +166,43 @@ def prob_backwards(tess_ind):
     # eliminate the initial conditions if its there - is this done?
     return P    # returns sparse transition probability matrix in the form (i,j,k,l,m,n,p[ij])
 
+def probability(tess_ind, type):
+    """Computes transition probability matrix of tesselated data in both the classic and the backwards sense (Schmid (2018)).
+
+    :param tess_ind:  matrix which includes the indices of the box taken by the data points in consequent time steps, can
+    be obtained from the tesselate(x,N) function
+    :param type: "classic" - traditional approach of calculating the probability of transitioning from state j to state i,
+    "backwards" - calculating probability of having transitioned from point j when already in point i
+    :return: returns sparse transition probability matrix P, where a row contains the coordinate of the point i to which
+    the transition occurs, point j from which the transition occurs and the value of probability of the transition
+    """
+    # for type=backwards 1 is to, 2 is from; for type = classic, 1 is from, 2 is to
+    dim = int(np.size(tess_ind[0, :]))  # dimensions
+    P = np.empty((0, 2 * dim + 1))  # probability matrix dim*2+1 for the value of the probability ...
+    # P[0,:] = [to_index(dim), from_index(dim), prob_value(1)]
+    u_1, index_1, counts_1 = np.unique(tess_ind, axis=0, return_index=True,
+                                                return_counts=True)  # sorted points that are occupied at some point
+
+    for j in range(len(u_1[:, 0])):  # for each unique entry (each tesselation box)
+        point_1 = u_1[j]  # index of the point j (in current box)
+        denom = counts_1[j]  # denominator for the probability
+        temp = np.all(tess_ind == point_1, axis=1)  # rows of tess_ind with point j
+        if type=='classic':
+            temp = np.append([False], temp[:-1])  # indices of the row just below (i); adding a false to the beginning
+        elif type=='backwards':
+            temp = np.append(temp[1:], [False])  # indices of the row just above (j); adding a false to the end
+        u_2, index_2, counts_2 = np.unique(tess_ind[temp], axis=0, return_index=True,
+                                              return_counts=True)  # sorted points occupied just before going to i
+
+        for i in range(len(counts_2)):  # loop through all instances of i
+            point_2 = u_2[i]
+            if type=='classic':
+                temp = np.append([[point_2], [point_1]], [counts_2[i] / denom])
+            elif type=='backwards':
+                temp = np.append([[point_1], [point_2]], [counts_2[i] / denom])
+            P = np.vstack([P, temp])  # add row to sparse probability matrix
+    return P
+
 
 def extr_iden_bif(P1,P_community):
     """Finds the indices of the communities between which the transition to the extreme event occurs by identifying
@@ -191,7 +228,15 @@ def extr_iden_bif(P1,P_community):
 
     return (extreme_from, extreme_to, nodes_from, nodes_to)
 
-def extr_iden_amp(P_community, P1, extr_trans):
+def extr_iden_amp(P1,P_community,extr_trans):
+    """Finds the indices of the communities between which the transition to the extreme event occurs based on the previously
+    identified node with maximum variance
+
+    :param P1: deflated transition probability matrix
+    :param P_community: partition community with keys as nodes and values as clusters
+    :param extr_trans: the translated index of the extreme event (in lexicographic order)
+    :return: returns tuple of index of clusters and nodes when the extreme event occurs
+    """
     nodes_from = []
     nodes_to = [extr_trans]   # in this approach this is NOT in the clustered form
     extreme_to = P_community[extr_trans]    # cluster

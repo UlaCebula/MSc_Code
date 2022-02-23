@@ -63,8 +63,8 @@ tess_ind, extr_id = tesselate(u,N,0)    # where zero indicated the dimension by 
 
 # transition probability matrix
 # break up process- first translate to 2d matrix, then count the probabilities, because we need the translated stated wrt t at the end
-# P = prob_backwards(tess_ind)    # create sparse transition probability matrix
-P = prob_classic(tess_ind)    # create sparse transition probability matrix
+P = probability(tess_ind, 'backwards') # create sparse transition probability matrix
+
 (P, extr_trans) = prob_to_sparse(P,N, extr_id) # translate matrix into 2D sparse array with points in lexicographic order, translates extr_id to lexicographic id
 
 tess_ind_trans = np.zeros(len(tess_ind[:, 0]))
@@ -122,7 +122,7 @@ extreme_from, extreme_to, nodes_from, nodes_to = extr_iden_bif(P1,P_community)
 print(extreme_from, extreme_to, nodes_from, nodes_to)
 
 # from already calculated max amplitude spot
-extreme_from, extreme_to, nodes_from, nodes_to = extr_iden_amp(P_community, P1, extr_trans)
+extreme_from, extreme_to, nodes_from, nodes_to = extr_iden_amp(P1, P_community, extr_trans)
 print(extreme_from, extreme_to, nodes_from, nodes_to)
 
 # but we first have to translate the tess_inf matrix into the one with node numbers/lexicographic order
