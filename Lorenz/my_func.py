@@ -27,14 +27,35 @@ def tesselate(x,N,ex_dim):
         point_ind = np.floor(y[k,:]*N).astype(int)  # vector of indices of the given point, rounding down
         point_ind[point_ind==N] = N-1   # for all point located at the very end (max) - put them in the last cell
         tess_ind = np.vstack([tess_ind, point_ind])   # sparse approach, translate the points into the indices of the tesselation
-        # to get the tesselated space, just take the unique rows of tess_ind
+                                                        # to get the tesselated space, just take the unique rows of tess_ind
 
-    # find tesselated index of extreme event
-    # extr_tess=np.where(P1.transpose()[extreme_from, :] == P1.transpose()[extreme_from, P1.transpose()[extreme_from,:].nonzero()].min())
+    # Find tesselated index of extreme event
     m = np.mean(x[:, ex_dim])   # mean of chosen parameter
     extr_id = tess_ind[np.argmax(abs(x[:,ex_dim]-m)),:]
 
     return tess_ind, extr_id    # returns indices of occupied spaces, without values and the index of the identified extreme event
+
+def tess_to_lexi(x,N,dim):
+    """Translated tesselated space of any dimensions to lexicographic order
+
+    :param x: array of tesselated space coordinates
+    :param N: number of discretsations in each direction
+    :param dim: dimensions of the phase space
+    :return: returns 1d array of tesselated space
+    """
+    x2 = np.zeros_like(x)
+    for i in range(1,dim):  # loop through dimensions
+        if x.size>dim:    # if we have more than one point
+            x2[:,i]=x[:,i]*N*i
+        else:
+            x2[i] = x[i] * N * i
+
+    if x.size>dim:    # if we have more than one point
+        x_trans = np.sum(x2[:,:dim], axis=1)
+    else:
+        x_trans = np.sum(x2[:dim])
+
+    return x_trans
 
 def prob_to_sparse(P,N, extr_id):
     """"Translates the transition probability matrix of any dimensions into a python sparse 2D matrix
@@ -48,22 +69,24 @@ def prob_to_sparse(P,N, extr_id):
 
     data = P[:,-1]  # store probability data in separate vector and delete it from the probability matrix
     P = np.delete(P, -1, axis=1)
-    extr_trans = extr_id
+    # extr_trans = extr_id
 
     # translate points into lexicographic order
-    for i in range(1,dim):  # loop through dimensions
-        P[:,i]=P[:,i]*N*i  # first point (to)
-        P[:,i+dim]=P[:,i+dim]*N*i   # second point (from)
-        extr_trans[i] = extr_trans[i]*N*i
-
-    row = np.sum(P[:,:dim], axis=1)
-    col = np.sum(P[:, dim:],axis=1)
-    extr_trans = np.sum(extr_trans)
+    row = tess_to_lexi(P[:,:dim],N, dim)
+    col = tess_to_lexi(P[:, dim:], N, dim)
+    extr_trans = tess_to_lexi(np.array(extr_id), N, dim)
+    # for i in range(1,dim):  # loop through dimensions
+    #     P[:,i]=P[:,i]*N*i  # first point (to)
+    #     P[:,i+dim]=P[:,i+dim]*N*i   # second point (from)
+    #     extr_trans[i] = extr_trans[i]*N*i
+    #
+    # row = np.sum(P[:,:dim], axis=1)
+    # col = np.sum(P[:, dim:],axis=1)
+    # extr_trans = np.sum(extr_trans)
 
     P = sparse.coo_matrix((data, (row, col)), shape=(N**dim, N**dim)) # create sparse matrix
 
-    return P, extr_trans
-
+    return P, extr_trans    # return sparse probability matrix with points in lexicographic order and the extreme event point
 
 def community_aff(P_com, N, dim, printing):
     """Creates a community affiliation matrix D, in which each point is matched with the cluster they were assigned to in the previous step
@@ -80,14 +103,14 @@ def community_aff(P_com, N, dim, printing):
         print('Total number of communities: ', nr_communities)
 
     D = np.zeros((N ** dim, nr_communities))  # number of points by number of communities
-    for com in np.unique(np.array(list(P_com.values()))):
+    for com in np.unique(np.array(list(P_com.values()))):   # for all communities
         if printing:
             print("Community: ", com)
             print("Nodes: ", end='')
-        for key, value in P_com.items():
+        for key, value in P_com.items():    # loop through all communities
             if value == com:
                 if printing:
-                    print(key, end=', ')
+                    print(key, end=', ')    # print nodes in the community
                 D[key, value] = 1  # to prescribe nodes to communities
         if printing:
             print('')
@@ -99,8 +122,7 @@ def to_graph(P):
     :param P: transition matrix (directed with weighted edges)
     :return: returns graph version of matrix P
     """
-    # translate to graph
-    P = P.transpose()
+    P = P.transpose()   # because of the different definition of the P matrix - for us it's P[to, from], for graph for - P[from,to]
     P_graph = nx.DiGraph()
     for i in range(len(P[:, 0])):
         for j in range(len(P[0, :])):
@@ -176,10 +198,10 @@ def probability(tess_ind, type):
     :return: returns sparse transition probability matrix P, where a row contains the coordinate of the point i to which
     the transition occurs, point j from which the transition occurs and the value of probability of the transition
     """
-    # for type=backwards 1 is to, 2 is from; for type = classic, 1 is from, 2 is to
+    # for type = 'backwards' 1 is to, 2 is from; for type = 'classic', 1 is from, 2 is to
     dim = int(np.size(tess_ind[0, :]))  # dimensions
-    P = np.empty((0, 2 * dim + 1))  # probability matrix dim*2+1 for the value of the probability ...
-    # P[0,:] = [to_index(dim), from_index(dim), prob_value(1)]
+    P = np.empty((0, 2 * dim + 1))  # probability matrix dim*2+1 for the value of the probability
+                                    # P[0,:] = [to_index(dim), from_index(dim), prob_value(1)]
     u_1, index_1, counts_1 = np.unique(tess_ind, axis=0, return_index=True,
                                                 return_counts=True)  # sorted points that are occupied at some point
 
@@ -201,6 +223,7 @@ def probability(tess_ind, type):
             elif type=='backwards':
                 temp = np.append([[point_1], [point_2]], [counts_2[i] / denom])
             P = np.vstack([P, temp])  # add row to sparse probability matrix
+
     return P
 
 
@@ -253,3 +276,38 @@ def extr_iden_amp(P1,P_community,extr_trans):
             nodes_to.append(key)
 
     return (int(extreme_from), extreme_to, nodes_from, nodes_to)
+
+def extr_iden(P1,P_community,type, extr_trans):
+    """Identifies nodes and clusters of extreme event and its predecessor using the bifurcation or max deviation method
+
+    :param P1: deflated transition probability matrix
+    :param P_community: partition community with keys as nodes and values as clusters
+    :param type: defines method of computation: 'bifurcation' or 'deviation'
+    :param extr_trans: the translated index of the extreme event (in lexicographic order)
+    :return: returns tuple of index of clusters and nodes when the extreme event occurs
+    """
+    nodes_from = []
+    nodes_to = []
+    if type=='bifurcation':
+        extreme_from = np.where(np.count_nonzero(P1.transpose(), axis=1) > 2)  # will give the row
+        extreme_from = int(extreme_from[0])
+        extreme_to = np.where(P1.transpose()[extreme_from, :] == P1.transpose()[extreme_from, P1.transpose()[extreme_from,
+                                                                                          :].nonzero()].min())  # indentifies clusters from and to which we have the extreme event transition
+        extreme_to = int(extreme_to[0])
+    if type=='deviation':
+        nodes_to = [extr_trans]  # in this approach this is NOT in the clustered form
+        extreme_to = P_community[extr_trans]  # cluster
+        extreme_from = P1[extreme_to, :].nonzero()  # cluster from which we can transition to extreme event
+        extreme_from = extreme_from[0]
+        if extreme_to in extreme_from:  # remove the option of transitions within the cluster
+            extreme_from = np.delete(extreme_from, np.where(extreme_from == extreme_to))
+        extreme_from = int(extreme_from)
+
+    for key, value in P_community.items():
+        if value == extreme_from:
+            nodes_from.append(key)
+        if value == extreme_to:
+            if (type=='deviation' and key not in nodes_to) or type=='bifurcation':
+                nodes_to.append(key)
+
+    return (extreme_from, extreme_to, nodes_from, nodes_to)
