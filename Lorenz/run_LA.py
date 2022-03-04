@@ -21,7 +21,7 @@ r = 28
 
 # time discretization
 t0 = 0.0
-tf = 110.0
+tf = 60.0 #110.0
 dt = 0.01
 t = np.arange(t0,tf,dt)
 N = np.size(t)
@@ -35,8 +35,8 @@ for i in range(N-1):
     x[i+1,:] = x[i,:] + dt*q
 
 # delete first 1000 ts to avoid numerical instabilities
-x = x[1000:,:]
-t = t[1000:]
+x = x[500:,:]
+t = t[500:]
 
 # Visualize data
 ax = plt.figure().add_subplot(projection='3d')
@@ -49,13 +49,17 @@ ax.set_title("Lorenz Attractor")
 # Visualization of the two dimensions - time series
 fig, axs = plt.subplots(3)
 fig.suptitle('Vertically stacked subplots')
-axs[0].plot(t, x[:,0])
+
+plt.subplot(3,1,1)
+plt.plot(t, x[:,0])
 plt.ylabel("$x$")
 plt.xlabel("t")
-axs[1].plot(t, x[:,1])
+plt.subplot(3,1,2)
+plt.plot(t, x[:,1])
 plt.ylabel("$y$")
 plt.xlabel("t")
-axs[2].plot(t, x[:,2])
+plt.subplot(3,1,3)
+plt.plot(t, x[:,2])
 plt.ylabel("$z$")
 plt.xlabel("t")
 
@@ -95,7 +99,6 @@ P1_graph = to_graph(P1)
 # Visualize clustered graph
 plt.figure()
 nx.draw_kamada_kawai(P1_graph,with_labels=True)
-
 
 # Color tesselation hypercubes by cluster affiliation - not efficient!!
 plt.figure()
