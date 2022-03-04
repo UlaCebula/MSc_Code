@@ -30,6 +30,7 @@ for i in range(len(t)):
 
 u = np.hstack([np.reshape(u1, (len(t),1)),np.reshape(u2, (len(t),1))])  # combine into one matrix
 
+
 # Visualization of the two dimensions - time series
 fig, axs = plt.subplots(2)
 fig.suptitle('Vertically stacked subplots')
@@ -133,13 +134,7 @@ for i in range(len(temp_to)):
             axs[1].scatter(t_to, u2[j], marker='s', facecolors='None', edgecolor='red')
 # for i in range(len(tess_ind_trans)-1):
 #     if tess_ind_trans[i] in nodes_from:
-#         if tess_ind_trans[i+1] in nodes_to:
-#             t_from = t0 + dt*i
-#             t_to = t_from + dt
-#             axs[0].scatter(t_from, u1[i], marker='s', facecolors = 'None', edgecolor = 'blue')
-#             axs[0].scatter(t_to, u1[i+1], marker='s', facecolors='None', edgecolor='red')
-#             axs[1].scatter(t_from, u2[i], marker='s', facecolors='None', edgecolor='blue')
-#             axs[1].scatter(t_to, u2[i+1], marker='s', facecolors='None', edgecolor='red')
+
 
 # # easier way
 # temp_to = np.array(np.where(np.isin(tess_ind_trans, nodes_to)))
