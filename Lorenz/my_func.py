@@ -44,11 +44,11 @@ def tess_to_lexi(x,N,dim):
     :return: returns 1d array of tesselated space
     """
     x2 = np.zeros_like(x)
-    for i in range(1,dim):  # loop through dimensions
+    for i in range(dim):  # loop through dimensions
         if x.size>dim:    # if we have more than one point
-            x2[:,i]=x[:,i]*N*i
+            x2[:,i]=x[:,i]*N**i
         else:
-            x2[i] = x[i] * N * i
+            x2[i] = x[i]*N**i
 
     if x.size>dim:    # if we have more than one point
         x_trans = np.sum(x2[:,:dim], axis=1)
