@@ -67,6 +67,13 @@ plt.xlabel("t")
 M = 20  # number of divisions for tesselation, uniform for all dimensions
 tess_ind, extr_id = tesselate(x,M,0)    # where 0 indicates the dimension by which the extreme event should be identified - here doesn't matter because we don't have an extreeme event
 
+# Visualize tessellation
+ax = plt.figure().add_subplot(projection='3d')
+ax.scatter3D(tess_ind[:,0], tess_ind[:,1], tess_ind[:,2])
+ax.set_xlabel("X Axis")
+ax.set_ylabel("Y Axis")
+ax.set_zlabel("Z Axis")
+
 # Transition probability
 P = probability(tess_ind, 'backwards') # create sparse transition probability matrix
 # P = prob_classic(tess_ind)
@@ -96,17 +103,40 @@ print(np.sum(P1,axis=0).tolist()) # should be approx.(up to rounding errors) equ
 P1 = P1.transpose()   # had to add transpose for the classic probability, why? the same for backwards?
 P1_graph = to_graph(P1)
 
+# more iterations
+P_community_old = P_community
+P_old = P1
+P_graph_old = P1_graph
+D_nodes_in_clusters= D
+
+while int(np.size(np.unique(np.array(list(P_community_old.values())))))>22: # while nr communities>20
+    P_community_new = spectralopt.partition(P_graph_old) # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
+    D_new = community_aff_clusters(P_community_old, P_community_new, 1) # matrix of point-to-cluster affiliation
+
+    # Deflate the Markov matrix
+    P_new = np.matmul(np.matmul(D_new.transpose(),P_old),D_new) # P1 transposed or not?
+    print(np.sum(P_new,axis=0).tolist()) # should be approx.(up to rounding errors) equal to number of nodes in each cluster
+
+    # Graph form
+    P_new = P_new.transpose()   # had to add transpose for the classic probability, why? the same for backwards?
+    P_graph_old = to_graph(P_new)
+    P_community_old = P_community_new
+    P_old = P_new
+
+    # make translation of which nodes belong to the new cluster
+    D_nodes_in_clusters = np.matmul(D_nodes_in_clusters,D_new)
+
 # Visualize clustered graph
 plt.figure()
-nx.draw_kamada_kawai(P1_graph,with_labels=True)
+nx.draw_kamada_kawai(P_graph_old,with_labels=True)
 
 # Color tesselation hypercubes by cluster affiliation - not efficient!!
 plt.figure()
 ax = plt.axes(projection='3d')
-for i in range(len(D[0,:])):   # for all communities
+for i in range(len(D_nodes_in_clusters[0,:])):   # for all communities
     print("Community: ", i)
     print("Nodes: ", end='')
-    nodes = np.array(D[:,i].nonzero())
+    nodes = np.array(D_nodes_in_clusters[:,i].nonzero())
     print(nodes)
     temp_nodes=[0,0,0]
     for j in range(len(tess_ind_trans)):

@@ -116,6 +116,35 @@ def community_aff(P_com, N, dim, printing):
             print('')
     return D
 
+def community_aff_clusters(P_com_old, P_com_new, printing):
+    """Creates a community affiliation matrix D, in which each old community is matched with the new cluster they were assigned to in the previous step
+
+    :param P_com_old: clustered community P
+    :param P_com_new: refined and reclustered community P
+    :param printing: bool parameter if the communities and their nodes should be printed on screen
+    :return: returns a dense Dirac matrix of the affiliation of old clusters to the newly identified clusters
+    """
+
+    nr_com_old = int(np.size(np.unique(np.array(list(P_com_old.values())))))
+    nr_com_new = int(np.size(np.unique(np.array(list(P_com_new.values())))))
+    if printing:
+        # print all communities and their node entries
+        print('Total number of new communities: ', nr_com_new)
+
+    D = np.zeros((nr_com_old, nr_com_new))
+    for com in np.unique(np.array(list(P_com_new.values()))):   # for all new communities
+        if printing:
+            print("Community: ", com)   # new community
+            print("Nodes: ", end='')    # old communities belonging to said new community
+        for key, value in P_com_old.items():    # loop through all old communities
+            if value == com:
+                if printing:
+                    print(key, end=', ')    # print nodes in the community
+                D[value, com] = 1  # to prescribe nodes to communities
+        if printing:
+            print('')
+    return D
+
 def to_graph(P):
     """Translates a probability matrix into graph form
 
