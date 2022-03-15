@@ -1,7 +1,6 @@
 # script for generating flow data for the Lorenz attractor model for Rayleigh-Bernard convection - 3 dimensional
 # Urszula Golyska 2022
 
-import numpy as np
 import matplotlib.pyplot as plt
 from my_func import *
 from modularity_maximization import spectralopt
