@@ -13,6 +13,8 @@ def LA_dt(x): # explicit Euler scheme
     dxdt[2] = x[0]*x[1]-b*x[2]
     return dxdt
 
+plt.close('all') # close all open figures
+
 # model coefficients - same as in Kaiser et al. 2014
 sigma = 10
 b = 8/3
