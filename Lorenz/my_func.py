@@ -3,6 +3,7 @@
 import numpy as np
 from scipy import sparse
 import networkx as nx
+from modularity_maximization import spectralopt
 
 def tesselate(x,N,ex_dim):
     """ Tesselate data points x into space defined by N spaces in each direction
@@ -88,7 +89,7 @@ def prob_to_sparse(P,N, extr_id):
 
     return P, extr_trans    # return sparse probability matrix with points in lexicographic order and the extreme event point
 
-def community_aff(P_com, N, dim, printing):
+def community_aff_nodes(P_com, N, dim, printing):
     """Creates a community affiliation matrix D, in which each point is matched with the cluster they were assigned to in the previous step
 
     :param P_com: clustered community P
@@ -112,6 +113,48 @@ def community_aff(P_com, N, dim, printing):
                 if printing:
                     print(key, end=', ')    # print nodes in the community
                 D[key, value] = 1  # to prescribe nodes to communities
+        if printing:
+            print('')
+    return D
+
+def community_aff(P_com_old, P_com_new, N, dim, type, printing):
+    """Creates a community affiliation matrix D, in which each node or old cluster is matched with the new cluster they
+    were assigned to in the previous step
+
+     :param P_com_old: clustered community P
+    :param P_com_new: refined and reclustered community P
+    :param N: number of discretsations in each direction
+    :param dim: dimensions of the system
+    :param type: 'first' or 'iteration', defines whether we are clustering clusters or nodes
+    :param printing: bool parameter if the communities and their nodes should be printed on screen
+    :return: returns a dense Dirac matrix of the affiliation of points to the identified clusters
+    """
+    nr_com_new = int(np.size(np.unique(np.array(list(P_com_new.values())))))
+    if type=='iteration':
+        nr_com_old = int(np.size(np.unique(np.array(list(P_com_old.values())))))
+        D = np.zeros((nr_com_old, nr_com_new))
+    elif type=='first':
+        D = np.zeros((N ** dim, nr_com_new))  # number of points by number of communities
+    if printing:
+        # print all communities and their node entries
+        print('Total number of new communities: ', nr_com_new)
+
+    for com in np.unique(np.array(list(P_com_new.values()))):   # for all communities
+        if printing:
+            print("Community: ", com)
+            print("Nodes: ", end='')
+        if type=='iteration':
+            for key, value in P_com_old.items():    # loop through all communities
+                if value == com:
+                    if printing:
+                        print(key, end=', ')    # print nodes in the community
+                    D[value,com] = 1  # to prescribe nodes to communities
+        elif type=='first':
+            for key, value in P_com_new.items():  # loop through all communities
+                if value == com:
+                    if printing:
+                        print(key, end=', ')  # print nodes in the community
+                    D[key, value] = 1  # to prescribe nodes to communities
         if printing:
             print('')
     return D
@@ -340,3 +383,22 @@ def extr_iden(P1,P_community,type, extr_trans):
                 nodes_to.append(key)
 
     return (extreme_from, extreme_to, nodes_from, nodes_to)
+
+def clustering_loop(P_community_old, P_graph_old, P_old, D_nodes_in_clusters):
+
+    P_community_new = spectralopt.partition(P_graph_old)  # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
+    D_new = community_aff(P_community_old, P_community_new, 0, 0, 'iteration', 1)  # matrix of point-to-cluster affiliation
+
+    # Deflate the Markov matrix
+    P_new = np.matmul(np.matmul(D_new.transpose(), P_old.transpose()), D_new)  # P1 transposed or not?
+    print(np.sum(P_new,axis=0).tolist())  # should be approx.(up to rounding errors) equal to number of nodes in each cluster
+
+    # Graph form
+    # P_new = P_new.transpose()   # had to add transpose for the classic probability, why? the same for backwards?
+    P_graph_old = to_graph(P_new)
+    P_community_old = P_community_new
+    P_old = P_new
+
+    # make translation of which nodes belong to the new cluster
+    D_nodes_in_clusters = np.matmul(D_nodes_in_clusters, D_new)
+    return P_community_old, P_graph_old, P_old, D_nodes_in_clusters

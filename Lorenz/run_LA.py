@@ -21,7 +21,7 @@ r = 28
 
 # time discretization
 t0 = 0.0
-tf = 60.0 #110.0
+tf = 30.0 #110.0
 dt = 0.01
 t = np.arange(t0,tf,dt)
 N = np.size(t)
@@ -93,7 +93,7 @@ nx.draw_kamada_kawai(P_graph,with_labels=True)
 
 # Clustering
 P_community = spectralopt.partition(P_graph) # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
-D = community_aff(P_community, M, dim, 1) # matrix of point-to-cluster affiliation
+D = community_aff(0, P_community, M, dim, 'first', 1) # matrix of point-to-cluster affiliation
 
 # Deflate the Markov matrix
 P1 = np.matmul(np.matmul(D.transpose(),P_dense.transpose()),D)
@@ -108,23 +108,11 @@ P_community_old = P_community
 P_old = P1
 P_graph_old = P1_graph
 D_nodes_in_clusters= D
+int_id=0
 
-while int(np.size(np.unique(np.array(list(P_community_old.values())))))>22: # while nr communities>20
-    P_community_new = spectralopt.partition(P_graph_old) # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
-    D_new = community_aff_clusters(P_community_old, P_community_new, 1) # matrix of point-to-cluster affiliation
-
-    # Deflate the Markov matrix
-    P_new = np.matmul(np.matmul(D_new.transpose(),P_old),D_new) # P1 transposed or not?
-    print(np.sum(P_new,axis=0).tolist()) # should be approx.(up to rounding errors) equal to number of nodes in each cluster
-
-    # Graph form
-    P_new = P_new.transpose()   # had to add transpose for the classic probability, why? the same for backwards?
-    P_graph_old = to_graph(P_new)
-    P_community_old = P_community_new
-    P_old = P_new
-
-    # make translation of which nodes belong to the new cluster
-    D_nodes_in_clusters = np.matmul(D_nodes_in_clusters,D_new)
+while int(np.size(np.unique(np.array(list(P_community_old.values())))))>32 and int_id<10: # condition
+    int_id=int_id+1
+    P_community_old, P_graph_old, P_old, D_nodes_in_clusters = clustering_loop(P_community_old, P_graph_old, P_old, D_nodes_in_clusters)
 
 # Visualize clustered graph
 plt.figure()
