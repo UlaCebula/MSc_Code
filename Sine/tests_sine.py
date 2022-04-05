@@ -60,12 +60,12 @@ tf = 1000.0
 dt = 0.01
 nt_ex = 50  # number of time steps of the extreme event
 rand_threshold= 0.95
-rand_amplitude = 2
-rand_scalar_array = [0.2, 0.5, 0.75, 1, 1.5, 2]
+rand_amplitude_array = [1.2, 1.5, 1.8]
+rand_scalar = 1
 dim = 2     # number of dimensions
 N = 20  # number of discretizations in each dimension
 
 plotting=0 # do we want to plot everything (otherwise plots only the last plot with extreme event identification)
-for rand_scalar in rand_scalar_array:
+for rand_amplitude in rand_amplitude_array:
     sine_process(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar, N, dim, plotting)
     plt.show()

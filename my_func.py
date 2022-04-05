@@ -3,6 +3,7 @@
 import numpy as np
 from scipy import sparse
 import networkx as nx
+import graphviz as gv
 from modularity_maximization import spectralopt
 
 def tesselate(x,N,ex_dim):
@@ -136,6 +137,34 @@ def to_graph(P):
                 P_graph.add_edge(i, j, weight=P[i, j])
     return P_graph
 
+def to_graph_sparse(P):
+    """Translates a sparse probability matrix into graph form
+
+    :param P: sparse transition matrix (directed with weighted edges)
+    :return: returns graph version of matrix P
+    """
+    columns = P.row   # because of the different definition of the P matrix - for us it's P[to, from], for graph for - P[from,to]
+    rows = P.col
+    data = P.data
+    P_graph = nx.DiGraph()
+    for i in range(len(columns)):
+        P_graph.add_edge(rows[i], columns[i], weight=data[i])   # to check: should it be columns, rows or rows,columns
+    return P_graph
+
+def to_graph_gv(P):
+    """Translates a sparse probability matrix into graph form for the gv package used for large communities
+
+    :param P: sparse transition matrix (directed with weighted edges)
+    :return: returns graph version of matrix P
+    """
+    columns = P.row   # because of the different definition of the P matrix - for us it's P[to, from], for graph for - P[from,to]
+    rows = P.col
+    data = P.data
+    P_graph = gv.Digraph('G', filename='cluster.gv')
+    for i in range(len(columns)):
+        P_graph.edge(str(rows[i]), str(columns[i]), label=str(data[i]))
+    return P_graph
+
 def probability(tess_ind, type):
     """Computes transition probability matrix of tesselated data in both the classic and the backwards sense (Schmid (2018)).
 
@@ -198,10 +227,13 @@ def extr_iden(P1,P_community,type, extr_trans):
         extreme_from = extreme_from[0]
         if extreme_to in extreme_from:  # remove the option of transitions within the cluster
             extreme_from = np.delete(extreme_from, np.where(extreme_from == extreme_to))
-        extreme_from = int(extreme_from)
+        # if np.size(extreme_from)==1:
+            # extreme_from = int(extreme_from)
+        if np.size(extreme_from)>1:
+            print("More than one cluster transitioning to extreme event found:", extreme_from)
 
     for key, value in P_community.items():
-        if value == extreme_from:
+        if value in extreme_from:
             nodes_from.append(key)
         if value == extreme_to:
             if (type=='deviation' and key not in nodes_to) or type=='bifurcation':

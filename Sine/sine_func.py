@@ -135,6 +135,24 @@ def sine_process(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar,
     if plotting:
         plot_graph(P1_graph)
 
+    #TEMPORARY!!
+    # Color tesselation hypercubes by cluster affiliation - not efficient!!
+    # plt.figure()
+    # ax = plt.axes()
+    # for i in range(len(D[0, :])):  # for all communities
+    #     print("Community: ", i)
+    #     print("Nodes: ", end='')
+    #     nodes = np.array(D[:, i].nonzero())
+    #     print(nodes)
+    #     temp_nodes = [0, 0]
+    #     for j in range(len(tess_ind_trans)):
+    #         if tess_ind_trans[j] in nodes:
+    #             temp_nodes = np.vstack([temp_nodes, tess_ind[j, :]])
+    #     temp_nodes = temp_nodes[1:, :]
+    #     ax.scatter(temp_nodes[:, 0], temp_nodes[:, 1])
+    #TEMPORARY!!
+
+
     # Identify extreme event it's precursor
     extreme_from, extreme_to, nodes_from, nodes_to = extr_iden(P1,P_community,'deviation',extr_trans)  # for bifurcation it detect's wrong path
     print('From: ', extreme_from, '(', nodes_from, ') \n', 'To: ', extreme_to, '(', nodes_to, ')')

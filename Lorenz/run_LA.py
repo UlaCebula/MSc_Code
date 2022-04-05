@@ -35,7 +35,7 @@ for i in range(N-1):
     q = LA_dt(x[i,:])
     x[i+1,:] = x[i,:] + dt*q
 
-# delete first 1000 ts to avoid numerical instabilities
+# delete first 500 ts to avoid numerical instabilities
 x = x[500:,:]
 t = t[500:]
 
@@ -76,7 +76,7 @@ ax.set_ylabel("Y Axis")
 ax.set_zlabel("Z Axis")
 
 # Transition probability
-P = probability(tess_ind, 'backwards') # create sparse transition probability matrix
+P = probability(tess_ind, 'classic') # create sparse transition probability matrix
 # P = prob_classic(tess_ind)
 
 tess_ind_trans = tess_to_lexi(tess_ind,M,dim)
@@ -86,7 +86,8 @@ P_dense = P.toarray()
 # A=P_dense.sum(axis=0) # for the classic approach, must have prob=1 for all the from points
 
 # Graph form
-P_graph = to_graph(P_dense)     # translate to dict readable for partition function
+# P_graph = to_graph(P_dense)     # translate to dict readable for partition function
+P_graph = to_graph_sparse(P)     # translate to dict readable for partition function
 
 # # Visualize unclustered graph
 plt.figure()
