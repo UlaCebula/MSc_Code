@@ -123,6 +123,54 @@ def community_aff(P_com_old, P_com_new, N, dim, type, printing):
             print('')
     return D
 
+def community_aff_sparse(P_com_old, P_com_new, N, dim, type, printing):
+    """Creates a sparse community affiliation matrix D, in which each node or old cluster is matched with the new cluster they
+    were assigned to in the previous step
+
+    :param P_com_old: clustered community P
+    :param P_com_new: refined and reclustered community P
+    :param N: number of discretsations in each direction
+    :param dim: dimensions of the system
+    :param type: 'first' or 'iteration', defines whether we are clustering clusters or nodes
+    :param printing: bool parameter if the communities and their nodes should be printed on screen
+    :return: returns a sparse Dirac matrix of the affiliation of points to the identified clusters
+    """
+    D = np.empty((0,3), dtype=int)  # matrix od indices of sparse matrix
+    nr_com_new = int(np.size(np.unique(np.array(list(P_com_new.values())))))
+
+    for com in np.unique(np.array(list(P_com_new.values()))):   # for all communities
+        if printing:
+            print("Community: ", com)
+            print("Nodes: ", end='')
+        if type=='iteration':
+            for key, value in P_com_old.items():    # loop through all communities
+                if value == com:
+                    if printing:
+                        print(key, end=', ')    # print nodes in the community
+                    row = [value,com,1]  # to prescribe nodes to communities
+                    D = np.vstack([D, row])
+        elif type=='first':
+            for key, value in P_com_new.items():  # loop through all communities
+                if value == com:
+                    if printing:
+                        print(key, end=', ')  # print nodes in the community
+                    row = [key, value, 1]  # to prescribe nodes to communities
+                    D = np.vstack([D, row])
+        if printing:
+            print('')
+
+    if type=='iteration':
+        nr_com_old = int(np.size(np.unique(np.array(list(P_com_old.values())))))
+        D_sparse = sparse.coo_matrix((D[:, 2], (D[:,0], D[:,1])), shape=(nr_com_old, nr_com_new))
+    elif type=='first':
+        D_sparse = sparse.coo_matrix((D[:,2], (D[:,0],D[:,1])), shape=(N ** dim, nr_com_new))
+    if printing:
+        # print all communities and their node entries
+        print('Total number of new communities: ', nr_com_new)
+
+
+    return D_sparse
+
 def to_graph(P):
     """Translates a probability matrix into graph form
 
@@ -181,10 +229,16 @@ def probability(tess_ind, type):
                                     # P[0,:] = [to_index(dim), from_index(dim), prob_value(1)]
     u_1, index_1, counts_1 = np.unique(tess_ind, axis=0, return_index=True,
                                                 return_counts=True)  # sorted points that are occupied at some point
+    if type=='classic': #account for the last point
+        corr_point = tess_ind[-1]   #coreection point
+    elif type=='backwards': #account for the first point
+        corr_point = tess_ind[0]
 
     for j in range(len(u_1[:, 0])):  # for each unique entry (each tesselation box)
         point_1 = u_1[j]  # index of the point j (in current box)
         denom = counts_1[j]  # denominator for the probability
+        if (point_1==corr_point).all(): # check if current point is the one of interest
+            denom=denom-1
         temp = np.all(tess_ind == point_1, axis=1)  # rows of tess_ind with point j
         if type=='classic':
             temp = np.append([False], temp[:-1])  # indices of the row just below (i); adding a false to the beginning
@@ -242,6 +296,14 @@ def extr_iden(P1,P_community,type, extr_trans):
     return (extreme_from, extreme_to, nodes_from, nodes_to)
 
 def clustering_loop(P_community_old, P_graph_old, P_old, D_nodes_in_clusters):
+    """
+
+    :param P_community_old:
+    :param P_graph_old:
+    :param P_old:
+    :param D_nodes_in_clusters:
+    :return:
+    """
 
     P_community_new = spectralopt.partition(P_graph_old)  # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
     D_new = community_aff(P_community_old, P_community_new, 0, 0, 'iteration', 1)  # matrix of point-to-cluster affiliation
@@ -258,4 +320,31 @@ def clustering_loop(P_community_old, P_graph_old, P_old, D_nodes_in_clusters):
 
     # make translation of which nodes belong to the new cluster
     D_nodes_in_clusters = np.matmul(D_nodes_in_clusters, D_new)
+    return P_community_old, P_graph_old, P_old, D_nodes_in_clusters
+
+def clustering_loop_sparse(P_community_old, P_graph_old, P_old, D_nodes_in_clusters):
+    """
+
+    :param P_community_old:
+    :param P_graph_old:
+    :param P_old:
+    :param D_nodes_in_clusters:
+    :return:
+    """
+
+    P_community_new = spectralopt.partition(P_graph_old)  # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
+    D_new = community_aff_sparse(P_community_old, P_community_new, 0, 0, 'iteration', 1)  # matrix of point-to-cluster affiliation
+
+    # Deflate the Markov matrix
+    P_new = sparse.coo_matrix((D_new.transpose() * P_old) * D_new)
+    print(np.sum(P_new,axis=0).tolist())  # should be approx.(up to rounding errors) equal to number of nodes in each cluster
+
+    # Graph form
+    # P_new = P_new.transpose()   # had to add transpose for the classic probability, why? the same for backwards?
+    P_graph_old = to_graph_sparse(P_new)
+    P_community_old = P_community_new
+    P_old = P_new
+
+    # make translation of which nodes belong to the new cluster
+    D_nodes_in_clusters = sparse.coo_matrix(D_nodes_in_clusters*D_new)
     return P_community_old, P_graph_old, P_old, D_nodes_in_clusters

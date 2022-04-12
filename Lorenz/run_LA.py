@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from my_func import *
 from modularity_maximization import spectralopt
 import networkx as nx
+import scipy.sparse as sp
 
 def LA_dt(x): # explicit Euler scheme
     dxdt = np.zeros(x.shape)
@@ -82,39 +83,34 @@ P = probability(tess_ind, 'classic') # create sparse transition probability matr
 tess_ind_trans = tess_to_lexi(tess_ind,M,dim)
 P, extr_trans = prob_to_sparse(P,M, extr_id) # translate matrix into 2D sparse array with points in lexicographic order, translates extr_id to lexicographic id
 
-P_dense = P.toarray()
-# A=P_dense.sum(axis=0) # for the classic approach, must have prob=1 for all the from points
-
 # Graph form
-# P_graph = to_graph(P_dense)     # translate to dict readable for partition function
 P_graph = to_graph_sparse(P)     # translate to dict readable for partition function
 
-# # Visualize unclustered graph
+# Visualize unclustered graph
 plt.figure()
 nx.draw_kamada_kawai(P_graph,with_labels=True)
 
 # Clustering
-P_community = spectralopt.partition(P_graph) # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
-D = community_aff(0, P_community, M, dim, 'first', 1) # matrix of point-to-cluster affiliation
+P_community = spectralopt.partition(P_graph, refine=False) # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
+D_sparse = community_aff_sparse(0, P_community, M, dim, 'first', 1)
 
 # Deflate the Markov matrix
-P1 = np.matmul(np.matmul(D.transpose(),P_dense.transpose()),D)
+P1 = sp.coo_matrix((D_sparse.transpose()*P)*D_sparse)
 print(np.sum(P1,axis=0).tolist()) # should be approx.(up to rounding errors) equal to number of nodes in each cluster
 
 # Graph form
-P1 = P1.transpose()   # had to add transpose for the classic probability, why? the same for backwards?
-P1_graph = to_graph(P1)
+P1_graph = to_graph_sparse(P1)
 
 # more iterations
 P_community_old = P_community
 P_old = P1
 P_graph_old = P1_graph
-D_nodes_in_clusters= D
+D_nodes_in_clusters= D_sparse
 int_id=0
 
-while int(np.size(np.unique(np.array(list(P_community_old.values())))))>32 and int_id<10: # condition
+while int(np.size(np.unique(np.array(list(P_community_old.values())))))>15 and int_id<10: # condition
     int_id=int_id+1
-    P_community_old, P_graph_old, P_old, D_nodes_in_clusters = clustering_loop(P_community_old, P_graph_old, P_old, D_nodes_in_clusters)
+    P_community_old, P_graph_old, P_old, D_nodes_in_clusters = clustering_loop_sparse(P_community_old, P_graph_old, P_old, D_nodes_in_clusters)
 
 # Visualize clustered graph
 plt.figure()
@@ -123,10 +119,10 @@ nx.draw_kamada_kawai(P_graph_old,with_labels=True)
 # Color tesselation hypercubes by cluster affiliation - not efficient!!
 plt.figure()
 ax = plt.axes(projection='3d')
-for i in range(len(D_nodes_in_clusters[0,:])):   # for all communities
+for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
     print("Community: ", i)
     print("Nodes: ", end='')
-    nodes = np.array(D_nodes_in_clusters[:,i].nonzero())
+    nodes = D_nodes_in_clusters.row[D_nodes_in_clusters.col==i]
     print(nodes)
     temp_nodes=[0,0,0]
     for j in range(len(tess_ind_trans)):
