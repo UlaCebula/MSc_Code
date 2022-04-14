@@ -135,27 +135,27 @@ def community_aff_sparse(P_com_old, P_com_new, N, dim, type, printing):
     :param printing: bool parameter if the communities and their nodes should be printed on screen
     :return: returns a sparse Dirac matrix of the affiliation of points to the identified clusters
     """
-    D = np.empty((0,3), dtype=int)  # matrix od indices of sparse matrix
+    D = np.empty((0,3), dtype=int)  # matrix of indices of sparse matrix
     nr_com_new = int(np.size(np.unique(np.array(list(P_com_new.values())))))
 
     for com in np.unique(np.array(list(P_com_new.values()))):   # for all communities
         if printing:
             print("Community: ", com)
             print("Nodes: ", end='')
-        if type=='iteration':
-            for key, value in P_com_old.items():    # loop through all communities
-                if value == com:
-                    if printing:
-                        print(key, end=', ')    # print nodes in the community
-                    row = [value,com,1]  # to prescribe nodes to communities
-                    D = np.vstack([D, row])
-        elif type=='first':
-            for key, value in P_com_new.items():  # loop through all communities
-                if value == com:
-                    if printing:
-                        print(key, end=', ')  # print nodes in the community
-                    row = [key, value, 1]  # to prescribe nodes to communities
-                    D = np.vstack([D, row])
+        # if type=='iteration':
+        #     for key, value in P_com_new.items():    # loop through all new communities
+        #         if value == com:
+        #             if printing:
+        #                 print(key, end=', ')    # print nodes in the community
+        #             row = [key,com,1]  # to prescribe nodes to communities
+        #             D = np.vstack([D, row])     # key is old community
+        # elif type=='first':
+        for key, value in P_com_new.items():  # loop through all communities
+            if value == com:
+                if printing:
+                    print(key, end=', ')  # print nodes in the community
+                row = [key, value, 1]  # to prescribe nodes to communities
+                D = np.vstack([D, row])
         if printing:
             print('')
 
