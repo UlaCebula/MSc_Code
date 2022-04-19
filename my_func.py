@@ -142,14 +142,6 @@ def community_aff_sparse(P_com_old, P_com_new, N, dim, type, printing):
         if printing:
             print("Community: ", com)
             print("Nodes: ", end='')
-        # if type=='iteration':
-        #     for key, value in P_com_new.items():    # loop through all new communities
-        #         if value == com:
-        #             if printing:
-        #                 print(key, end=', ')    # print nodes in the community
-        #             row = [key,com,1]  # to prescribe nodes to communities
-        #             D = np.vstack([D, row])     # key is old community
-        # elif type=='first':
         for key, value in P_com_new.items():  # loop through all communities
             if value == com:
                 if printing:
