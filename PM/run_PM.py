@@ -4,7 +4,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from my_func import *
-import modred as mr
+import seaborn as sns
 import networkx as nx
 from modularity_maximization import spectralopt
 import scipy.sparse as sp
@@ -127,5 +127,68 @@ while int(np.size(np.unique(np.array(list(P_community_old.values())))))>25 and i
 # Visualize clustered graph
 plt.figure()
 nx.draw_kamada_kawai(P_graph_old,with_labels=True)
+
+# color palette
+palette = sns.color_palette(None, D_nodes_in_clusters.shape[1])
+
+# translate datapoints to cluster number affiliation
+tess_ind_cluster = data_to_clusters(tess_ind_trans, D_nodes_in_clusters)
+
+fig, axs = plt.subplots(3)
+fig.suptitle("Dynamic behavior of the dimensions of a PM flow")
+
+plt.subplot(3,1,1)
+plt.plot(t, x[:,0])
+# for i in range(len(tess_ind_cluster)-1):
+#     if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+#         plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
+plt.ylabel("$x_1$")
+plt.xlabel("t")
+plt.subplot(3,1,2)
+plt.plot(t, x[:,1])
+# for i in range(len(tess_ind_cluster)-1):
+#     if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+#         plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
+plt.ylabel("$x_2$")
+plt.xlabel("t")
+plt.subplot(3,1,3)
+plt.plot(t, x[:,2])
+for i in range(len(tess_ind_cluster)-1):
+    if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+        loc_col = palette[tess_ind_cluster[i]]
+        plt.axvline(x=(t[i] + t[i + 1]) / 2, color=loc_col, linestyle='--')
+        plt.text(t[i], 1, str(tess_ind_cluster[i]), rotation=90)  # numbers of clusters
+plt.ylabel("$x_3$")
+plt.xlabel("t")
+
+fig, axs = plt.subplots(2)
+fig.suptitle("Dynamic behavior of the dimensions of a PM flow")
+
+plt.subplot(2,1,1)
+plt.plot(t, x[:,3])
+# for i in range(len(tess_ind_cluster)-1):
+#     if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+#         plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
+plt.ylabel("$x_4$")
+plt.xlabel("t")
+plt.subplot(2,1,2)
+plt.plot(t, x[:,4])
+for i in range(len(tess_ind_cluster)-1):
+    if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+        loc_col = palette[tess_ind_cluster[i]]
+        plt.axvline(x=(t[i] + t[i + 1]) / 2, color=loc_col, linestyle='--')
+        plt.text(t[i], 3, str(tess_ind_cluster[i]), rotation=90)  # numbers of clusters
+plt.ylabel("$x_5$")
+plt.xlabel("t")
+
+# phase space
+plt.figure(figsize=(6,6))
+for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
+    plt.scatter(x[tess_ind_cluster==i,2], x[tess_ind_cluster==i,4])  # I should relate somehow s to N and the fig size
+    x_mean = np.mean(x[tess_ind_cluster == i, 2])
+    y_mean = np.mean(x[tess_ind_cluster == i, 4])
+    plt.text(x_mean, y_mean, str(i))  # numbers of clusters
+plt.ylabel("$x_5$")
+plt.xlabel("$x_3$")
 
 plt.show()

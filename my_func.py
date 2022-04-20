@@ -249,52 +249,69 @@ def probability(tess_ind, type):
 
     return P
 
-def extr_iden(P1,P_community,type, extr_trans):
-    """Identifies nodes and clusters of extreme event and its predecessor using the bifurcation or max deviation method
+def extr_iden(extr_trans, D_nodes_in_clusters, P_old):
+    """Identifies clusters of extreme event and its predecessor
 
-    :param P1: deflated transition probability matrix
-    :param P_community: partition community with keys as nodes and values as clusters
-    :param type: defines method of computation: 'bifurcation' or 'deviation'
-    :param extr_trans: the translated index of the extreme event (in lexicographic order)
-    :return: returns tuple of index of clusters and nodes when the extreme event occurs
+    :param extr_trans: node identified before as extreme event
+    :param D_nodes_in_clusters: matrix of affiliation of point to the community clusters
+    :param P_old: transition probability matrix
+    :return: returns tuple of cluster of the extreme event and the clusters of its predecessor
     """
-    nodes_from = []
-    nodes_to = []
-    if type=='bifurcation':
-        extreme_from = np.where(np.count_nonzero(P1.transpose(), axis=1) > 2)  # will give the row
-        extreme_from = int(extreme_from[0])
-        extreme_to = np.where(P1.transpose()[extreme_from, :] == P1.transpose()[extreme_from, P1.transpose()[extreme_from,
-                                                                                          :].nonzero()].min())  # indentifies clusters from and to which we have the extreme event transition
-        extreme_to = int(extreme_to[0])
-    if type=='deviation':
-        nodes_to = [extr_trans]  # in this approach this is NOT in the clustered form
-        extreme_to = P_community[extr_trans]  # cluster
-        extreme_from = P1[extreme_to, :].nonzero()  # cluster from which we can transition to extreme event
-        extreme_from = extreme_from[0]
-        if extreme_to in extreme_from:  # remove the option of transitions within the cluster
-            extreme_from = np.delete(extreme_from, np.where(extreme_from == extreme_to))
-        # if np.size(extreme_from)==1:
-            # extreme_from = int(extreme_from)
-        if np.size(extreme_from)>1:
-            print("More than one cluster transitioning to extreme event found:", extreme_from)
+    ## Identify extreme event it's precursor
+    if type(extr_trans)==np.int32:
+        extr_cluster = int(D_nodes_in_clusters.col[D_nodes_in_clusters.row == extr_trans])
+        from_cluster = P_old.col[P_old.row == extr_cluster]
+    else:
+        extr_cluster=[]
+        for point in extr_trans:    #all nodes that can transition to extreme event
+            loc_cluster =  int(D_nodes_in_clusters.col[D_nodes_in_clusters.row==point]) # cluster of point
+            if loc_cluster not in extr_cluster:
+                extr_cluster.append(loc_cluster)
+        from_cluster = []
+        for cluster in extr_cluster:    # for all extreme event clusters
+            loc_cluster = np.where(P_old[cluster,:]!=0)
+            if loc_cluster not in from_cluster:
+                from_cluster.append(loc_cluster)
+    from_cluster = np.delete(from_cluster,np.where(from_cluster == extr_cluster))  # remove iteration within extreme cluster
 
-    for key, value in P_community.items():
-        if value in extreme_from:
-            nodes_from.append(key)
-        if value == extreme_to:
-            if (type=='deviation' and key not in nodes_to) or type=='bifurcation':
-                nodes_to.append(key)
+    # nodes_from = []
+    # nodes_to = []
+    # if type=='bifurcation':
+    #     extreme_from = np.where(np.count_nonzero(P1.transpose(), axis=1) > 2)  # will give the row
+    #     extreme_from = int(extreme_from[0])
+    #     extreme_to = np.where(P1.transpose()[extreme_from, :] == P1.transpose()[extreme_from, P1.transpose()[extreme_from,
+    #                                                                                       :].nonzero()].min())  # indentifies clusters from and to which we have the extreme event transition
+    #     extreme_to = int(extreme_to[0])
+    # if type=='deviation':
+    #     nodes_to = [extr_trans]  # in this approach this is NOT in the clustered form
+    #     extreme_to = P_community[extr_trans]  # cluster
+    #     extreme_from = P1[extreme_to, :].nonzero()  # cluster from which we can transition to extreme event
+    #     extreme_from = extreme_from[0]
+    #     if extreme_to in extreme_from:  # remove the option of transitions within the cluster
+    #         extreme_from = np.delete(extreme_from, np.where(extreme_from == extreme_to))
+    #     # if np.size(extreme_from)==1:
+    #         # extreme_from = int(extreme_from)
+    #     if np.size(extreme_from)>1:
+    #         print("More than one cluster transitioning to extreme event found:", extreme_from)
+    #
+    # for key, value in P_community.items():
+    #     if value in extreme_from:
+    #         nodes_from.append(key)
+    #     if value == extreme_to:
+    #         if (type=='deviation' and key not in nodes_to) or type=='bifurcation':
+    #             nodes_to.append(key)
 
-    return (extreme_from, extreme_to, nodes_from, nodes_to)
+    return (extr_cluster,from_cluster)     #(extreme_from, extreme_to, nodes_from, nodes_to)
 
 def clustering_loop(P_community_old, P_graph_old, P_old, D_nodes_in_clusters):
-    """
+    """Runs the loop of re-clustering (for a iterative process)
 
-    :param P_community_old:
-    :param P_graph_old:
-    :param P_old:
-    :param D_nodes_in_clusters:
-    :return:
+    :param P_community_old: previous community, to be compressed
+    :param P_graph_old: previous community in graph form
+    :param P_old: previous transition probability matrix
+    :param D_nodes_in_clusters: matrix of affiliation of point to the previous community clusters
+    :return: returns a set of the same parameters, but after one optimization run, can be then directly fed to the
+     function again to obtain more optimized results
     """
 
     P_community_new = spectralopt.partition(P_graph_old)  # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
@@ -315,13 +332,14 @@ def clustering_loop(P_community_old, P_graph_old, P_old, D_nodes_in_clusters):
     return P_community_old, P_graph_old, P_old, D_nodes_in_clusters
 
 def clustering_loop_sparse(P_community_old, P_graph_old, P_old, D_nodes_in_clusters):
-    """
+    """Runs the loop of re-clustering (for a iterative process); sparse version
 
-    :param P_community_old:
-    :param P_graph_old:
-    :param P_old:
-    :param D_nodes_in_clusters:
-    :return:
+    :param P_community_old: previous community, to be compressed
+    :param P_graph_old: previous community in graph form (sparse)
+    :param P_old: previous transition probability matrix (sparse)
+    :param D_nodes_in_clusters: sparse matrix of affiliation of point to the previous community clusters
+    :return: returns a set of the same parameters, but after one optimization run, can be then directly fed to the
+     function again to obtain more optimized results
     """
 
     P_community_new = spectralopt.partition(P_graph_old)  # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
@@ -340,3 +358,16 @@ def clustering_loop_sparse(P_community_old, P_graph_old, P_old, D_nodes_in_clust
     # make translation of which nodes belong to the new cluster
     D_nodes_in_clusters = sparse.coo_matrix(D_nodes_in_clusters*D_new)
     return P_community_old, P_graph_old, P_old, D_nodes_in_clusters
+
+def data_to_clusters(tess_ind_trans, D_nodes_in_clusters):
+    '''Translates datapoints to cluster number affiliation
+
+    :param tess_ind_trans: datapoint time series already translated to tesselated lexicographic ordering
+    :param D_nodes_in_clusters: matrix of affiliation of all the possible points to current community ordering
+    :return: returns vector of the time series with their cluster affiliation
+    '''
+    tess_ind_cluster = np.zeros_like(tess_ind_trans)
+    for point in np.unique(tess_ind_trans):     # take all unique points in tesselated space
+        cluster_aff = int(D_nodes_in_clusters.col[D_nodes_in_clusters.row==point])  # find affiliated cluster
+        tess_ind_cluster[tess_ind_trans==point] = cluster_aff
+    return tess_ind_cluster

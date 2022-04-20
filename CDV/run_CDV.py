@@ -159,6 +159,12 @@ plt.plot(t, x[:,5])
 plt.ylabel("$x_6$")
 plt.xlabel("t")
 
+# phase space
+plt.figure(figsize=(6,6))
+plt.scatter(x[:,0], x[:,3])
+plt.ylabel("$x_4$")
+plt.xlabel("$x_1$")
+
 # Phase space - 5 first (most energetic) POD modes
 # Compute POD
 # num_modes = 5
@@ -207,7 +213,7 @@ P_graph_old = P1_graph
 D_nodes_in_clusters= D_sparse
 int_id=0
 # one run
-while int(np.size(np.unique(np.array(list(P_community_old.values())))))>25 and int_id<0: # condition
+while int(np.size(np.unique(np.array(list(P_community_old.values())))))>25 and int_id<15: # condition
     int_id=int_id+1
     P_community_old, P_graph_old, P_old, D_nodes_in_clusters = clustering_loop_sparse(P_community_old, P_graph_old, P_old, D_nodes_in_clusters)
     # print(np.sum(D_nodes_in_clusters,axis=0).tolist())
@@ -215,5 +221,69 @@ while int(np.size(np.unique(np.array(list(P_community_old.values())))))>25 and i
 # Visualize clustered graph
 plt.figure()
 nx.draw_kamada_kawai(P_graph_old,with_labels=True)
+
+#NEW MODULE - time series with cluster affiliation
+# translate datapoints to cluster number affiliation
+tess_ind_cluster = np.zeros_like(tess_ind_trans)
+for point in np.unique(tess_ind_trans):     # take all unique points in tesselated space
+    cluster_aff = int(D_nodes_in_clusters.col[D_nodes_in_clusters.row==point])  # find affiliated cluster
+    tess_ind_cluster[tess_ind_trans==point] = cluster_aff
+
+fig, axs = plt.subplots(3)
+fig.suptitle("Dynamic behavior of the dimensions of a CDV flow")
+
+plt.subplot(3,1,1)
+plt.plot(t, x[:,0])
+for i in range(len(tess_ind_cluster)-1):
+    if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+        plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
+plt.ylabel("$x_1$")
+plt.xlabel("t")
+plt.subplot(3,1,2)
+plt.plot(t, x[:,1])
+for i in range(len(tess_ind_cluster)-1):
+    if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+        plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
+plt.ylabel("$x_2$")
+plt.xlabel("t")
+plt.subplot(3,1,3)
+plt.plot(t, x[:,2])
+for i in range(len(tess_ind_cluster)-1):
+    if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+        plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
+plt.ylabel("$x_3$")
+plt.xlabel("t")
+
+fig, axs = plt.subplots(3)
+fig.suptitle("Dynamic behavior of the dimensions of a CDV flow")
+
+plt.subplot(3,1,1)
+plt.plot(t, x[:,3])
+for i in range(len(tess_ind_cluster)-1):
+    if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+        plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
+plt.ylabel("$x_4$")
+plt.xlabel("t")
+plt.subplot(3,1,2)
+plt.plot(t, x[:,4])
+for i in range(len(tess_ind_cluster)-1):
+    if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+        plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
+plt.ylabel("$x_5$")
+plt.xlabel("t")
+plt.subplot(3,1,3)
+plt.plot(t, x[:,5])
+for i in range(len(tess_ind_cluster)-1):
+    if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+        plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
+plt.ylabel("$x_6$")
+plt.xlabel("t")
+
+# phase space
+plt.figure(figsize=(6,6))
+for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
+    plt.scatter(x[tess_ind_cluster==i,0], x[tess_ind_cluster==i,3])  # I should relate somehow s to N and the fig size
+plt.ylabel("$x_4$")
+plt.xlabel("$x_1$")
 
 plt.show()

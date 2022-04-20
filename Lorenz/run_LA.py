@@ -2,6 +2,8 @@
 # Urszula Golyska 2022
 
 import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
 from my_func import *
 from modularity_maximization import spectralopt
 import networkx as nx
@@ -116,19 +118,47 @@ while int(np.size(np.unique(np.array(list(P_community_old.values())))))>15 and i
 plt.figure()
 nx.draw_kamada_kawai(P_graph_old,with_labels=True)
 
-# Color tesselation hypercubes by cluster affiliation - not efficient!!
+# color palette
+palette = sns.color_palette(None, D_nodes_in_clusters.shape[1])
+
+# translate datapoints to cluster number affiliation
+tess_ind_cluster = data_to_clusters(tess_ind_trans, D_nodes_in_clusters)
+
+# Color tesselation hypercubes by cluster affiliation
 plt.figure()
 ax = plt.axes(projection='3d')
 for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
-    print("Community: ", i)
-    print("Nodes: ", end='')
-    nodes = D_nodes_in_clusters.row[D_nodes_in_clusters.col==i]
-    print(nodes)
-    temp_nodes=[0,0,0]
-    for j in range(len(tess_ind_trans)):
-        if tess_ind_trans[j] in nodes:
-            temp_nodes = np.vstack([temp_nodes, tess_ind[j,:]])
-    temp_nodes = temp_nodes[1:,:]
-    ax.scatter3D(temp_nodes[:,0], temp_nodes[:,1], temp_nodes[:,2])
+    ax.scatter3D(tess_ind[tess_ind_cluster==i,0], tess_ind[tess_ind_cluster==i,1], tess_ind[tess_ind_cluster==i,2])  # I should relate somehow s to N and the fig size
+    x_mean = np.mean(tess_ind[tess_ind_cluster==i,0])
+    y_mean = np.mean(tess_ind[tess_ind_cluster==i,1])
+    z_mean = np.mean(tess_ind[tess_ind_cluster==i,2])
+    ax.text(x_mean, y_mean, z_mean, str(i))  # numbers of clusters
+
+
+plt.figure()
+plt.subplot(3,1,1)
+plt.plot(t, x[:,0])
+# add dashed red line for cluster change
+for i in range(len(tess_ind_cluster)-1):
+    if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+        loc_col = palette[tess_ind_cluster[i]]
+        plt.axvline(x=(t[i]+t[i+1])/2, color = loc_col, linestyle = '--')
+        plt.text(t[i], 3, str(tess_ind_cluster[i]), rotation=90)  # numbers of clusters
+plt.ylabel("$x$")
+plt.xlabel("t")
+plt.subplot(3,1,2)
+plt.plot(t, x[:,1])
+# for i in range(len(tess_ind_cluster)-1):
+#     if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+#         plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
+plt.ylabel("$y$")
+plt.xlabel("t")
+plt.subplot(3,1,3)
+plt.plot(t, x[:,2])
+# for i in range(len(tess_ind_cluster)-1):
+#     if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
+#         plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
+plt.ylabel("$z$")
+plt.xlabel("t")
 
 plt.show()
