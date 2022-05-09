@@ -96,23 +96,16 @@ if __name__ == "__main__":
     zeta, xi1,xi2,xi3,xi4,xi5,xi6,xi7,xi8,xi9 = get_MFE_param(alpha,beta,gamma,Re)
         
     dt = 0.25
-    Tmax = 30000.
+    Tmax = 5000.
     Nt = int(Tmax/dt)
     
     ## useless attempts
     EI = np.sqrt(1.1-1.) / 2.
-    #random_seed = 1
-    #rng = np.random.RandomState(random_seed)
-    #u0 = rng.uniform(-1.,1.,9)
-    #u0 = np.array([0.0, EI, EI, EI, EI, 0.0, 0.0, 0.0, 0.0])
-    #u0 = np.array([0.992, 0.017, -0.015, 0.04, 0.05, 0.05, 0.05, 0.0005, -0.001])
-    #EI = 0.0
-    #u0 = np.array([1.0, 0.0, 0.0, 0.0, 0.0, 0.1, 0.1, 0.1, 1.0])
-    #u0 = np.array([EI, EI, EI, -EI, -EI, -EI, -EI, -EI, EI])
-    
     
     # values from Joglekar, Deudel & Yorke, "Geometry of the edge of chaos in a low dimensional turbulent shear layer model", PRE 91, 052903 (2015)
     u0 = np.array( [ 1.0, 0.07066, -0.07076, 0.0+0.001*np.random.rand(), 0.0, 0.0, 0.0, 0.0, 0.0])
+    #from MFE paper
+    # u0 = np.array([0,EI,EI,EI,EI,0,0,0,0])
     #u0 = np.array( [0.129992, -0.0655929, 0.0475706, 0.0329967, 0.0753854, -0.00325098, -0.042364, -0.019685, -0.101453   ])
     #u0 = np.array( [2.0, -0.0655929, 0.0475706, 0.0329967, 0.0753854, -0.00325098, -0.042364, -0.019685, -0.101453   ]) # for Re=340, interesting quasi-periodic attractor
     #u0 = np.array( [1.5, -0.0655929, 0.0475706, 0.0329967, 0.0753854, -0.00325098, -0.042364, -0.019685, -0.101453   ])
@@ -144,9 +137,16 @@ if __name__ == "__main__":
     
     # "turbulent energy"
     Energy = (1. - u[:,0])**2. + np.sum(u[:,1:]**2.,1)
-    
-    fln = 'MFE_Re' + str(int(Re)) + '_T' + str(int(Tmax)) + '.h5'
+
+    # datafile name
+    # fln = 'Schmid_Garcia_Re400'
+    # fln = 'MFE_Re' + str(int(Re)) + '_T' + str(int(Tmax)) + '.h5'
+
+    ##here reconstruct field and calculate dissipation
+
+
     f = h5py.File(fln,'w')
+    f.create_dataset('I',data=Energy)
     f.create_dataset('u',data=u)
     f.create_dataset('t',data=t)
     f.create_dataset('Re',data=Re)

@@ -33,7 +33,11 @@ def tesselate(x,N,ex_dim):
 
     # Find tesselated index of extreme event
     m = np.mean(x[:, ex_dim])   # mean of chosen parameter
-    extr_id = tess_ind[np.argmax(abs(x[:,ex_dim]-m)),:]
+    # extr_id = tess_ind[np.argmax(abs(x[:,ex_dim]-m)),:]
+
+    # extreme event - within >=10% away from the mean
+    temp = abs(x[:,ex_dim]-m)/max(abs(x[:,ex_dim]-m))
+    extr_id = tess_ind[temp>=0.9,:]
 
     return tess_ind, extr_id    # returns indices of occupied spaces, without values and the index of the identified extreme event
 
@@ -263,15 +267,17 @@ def extr_iden(extr_trans, D_nodes_in_clusters, P_old):
         from_cluster = P_old.col[P_old.row == extr_cluster]
     else:
         extr_cluster=[]
-        for point in extr_trans:    #all nodes that can transition to extreme event
+        for point in extr_trans:    #all nodes in extreme event
             loc_cluster =  int(D_nodes_in_clusters.col[D_nodes_in_clusters.row==point]) # cluster of point
             if loc_cluster not in extr_cluster:
                 extr_cluster.append(loc_cluster)
+
         from_cluster = []
         for cluster in extr_cluster:    # for all extreme event clusters
-            loc_cluster = np.where(P_old[cluster,:]!=0)
-            if loc_cluster not in from_cluster:
-                from_cluster.append(loc_cluster)
+            from_cluster_loc = P_old.col[P_old.row==cluster]  # from clusters that transition to extreme clusters
+            for loc_cluster in from_cluster_loc:
+                if loc_cluster not in from_cluster:
+                    from_cluster.append(loc_cluster)
     from_cluster = np.delete(from_cluster,np.where(from_cluster == extr_cluster))  # remove iteration within extreme cluster
 
     # nodes_from = []

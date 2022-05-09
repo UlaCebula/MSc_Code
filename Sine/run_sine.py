@@ -166,6 +166,7 @@ plt.xlabel("t")
 
 # phase space
 plt.figure(figsize=(7, 7))
+plt.plot(u1,u2, 'b--')
 for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
     plt.scatter(u1[tess_ind_cluster==i], u2[tess_ind_cluster==i])#, c=palette[i])  # I should relate somehow s to N and the fig size
     x_mean = np.mean(u1[tess_ind_cluster==i])
