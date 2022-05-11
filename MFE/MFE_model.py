@@ -1,4 +1,6 @@
 # script for generating flow data from the Moehlis-Faisst-Eckhardt equations - 9 dimensional
+# Urszula Golyska 2022
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.integrate import ode

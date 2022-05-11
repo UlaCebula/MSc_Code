@@ -12,12 +12,10 @@ import seaborn as sns
 plt.close('all') # close all open figures
 
 hf = h5py.File('MFE_Re600_DATA.h5','r')
-# hf = h5py.File('MFE_Re600_DATA_dissipation.h5','r')
-# D = np.array(hf.get('/D'))
+D = np.load('MFE_Re600_dissipation.npy')
 
-# plt.plot(range(10000),D[:10000])
-# plt.show()
-
+plt.plot(range(10000),D[:10000])
+plt.show()
 
 Lx = np.array(hf.get('/Lx'))
 Lz = np.array(hf.get('/Lz'))
@@ -43,6 +41,7 @@ t = np.array(hf.get('/t'))
 # delete initial period
 t = t[500:]
 u = u[500:, :]
+D = D[500:]
 
 # Visualize coefficients
 fig, axs = plt.subplots(5)
@@ -95,19 +94,15 @@ roll_streak = linalg.norm(u[:,1:3].transpose(),axis=0)  # from a2,a3,a4
 burst = linalg.norm(u[:,3:5].transpose(),axis=0)    # from a5,a6,a7,a8
 
 m = np.mean(burst)
-print(m)
-# temp = abs(burst-m)/max(abs(burst-m))
-# extr_id = tess_ind[temp>=0.9,:]
-cutoff = m+0.7*(max(burst)-m)
+dev = np.std(burst)
 
 plt.figure()
 plt.plot(t, burst)
-plt.axhline(cutoff, color='r', linestyle='-.')
+plt.axhline(m, color='r', linestyle='--')
+plt.axhline(m+3*dev, color='g', linestyle='-.')
 plt.title("Burst component vs time")
 plt.ylabel("$b$")
 plt.xlabel("t")
-
-plt.show()
 
 # Visualize data
 ax = plt.figure().add_subplot(projection='3d')

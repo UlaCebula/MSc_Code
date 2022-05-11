@@ -35,9 +35,9 @@ def tesselate(x,N,ex_dim):
     m = np.mean(x[:, ex_dim])   # mean of chosen parameter
     # extr_id = tess_ind[np.argmax(abs(x[:,ex_dim]-m)),:]
 
-    # extreme event - within >=10% away from the mean
-    temp = abs(x[:,ex_dim]-m)/max(abs(x[:,ex_dim]-m))
-    extr_id = tess_ind[temp>=0.9,:]
+    # extreme event - within >3 sigma away from the mean
+    dev = np.std(x[:,ex_dim])
+    extr_id = tess_ind[abs(x[:,ex_dim])>=m+5*dev,:] # define extreme event as three times the standard deviation away from the mean
 
     return tess_ind, extr_id    # returns indices of occupied spaces, without values and the index of the identified extreme event
 
