@@ -5,7 +5,18 @@ import matplotlib.pyplot as plt
 import networkx as nx
 from my_func import *
 
-def data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar):
+def data_generation(t0=0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar):
+    """Function for generating data of the sine wave system
+
+    :param t0: starting time, default t0=0
+    :param tf: final time
+    :param dt: time step
+    :param nt_ex: number of time steps that the extreme event will last
+    :param rand_threshold: threshold defining the probability of the extreme event
+    :param rand_amplitude: amplitude defining the jump of the extreme event
+    :param rand_scalar: scalar value defining the size of the extreme event
+    :return: returns time vector t and matrix of data (of size 2*Nt)
+    """
     # time discretization
     t = np.arange(t0,tf,dt)
 
@@ -24,6 +35,12 @@ def data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scal
     return t, u
 
 def plot_time_series(t,u):
+    """Function for plotting the time series of the data
+
+    :param t: time vector
+    :param u: matrix of data (of size 2*Nt)
+    :return: none, plots the time series of u (sin(t) and cos(t))
+    """
     # Visualization of the two dimensions - time series
     fig, axs = plt.subplots(2)
     fig.suptitle('Vertically stacked subplots')
@@ -46,6 +63,12 @@ def plot_time_series(t,u):
     return 1
 
 def plot_tesselated_space(tess_ind):
+    """Function for plotting the data in tesselated phase space
+
+    :param tess_ind: matrix which includes the indices of the box taken by the data points in consequent time steps, can
+    be obtained from the tesselate(x,N) function
+    :return: none, plots the data in tesselated phase space
+    """
     # Visualization - tesselated space
     plt.figure(figsize=(7, 7))
     plt.scatter(tess_ind[:,0], tess_ind[:,1], s=200, marker='s', facecolors = 'None', edgecolor = 'blue') #I should relate somehow s to N and the fig size
@@ -56,6 +79,11 @@ def plot_tesselated_space(tess_ind):
     return 1
 
 def plot_prob_matrix(P_dense):
+    """Function for plotting probability matrix
+
+    :param P_dense: dense representation of calculated probability matrix
+    :return: none, plots probability matrix
+    """
     # Visualize probability matrix
     plt.figure(figsize=(7, 7))
     plt.imshow(P_dense,interpolation='none', cmap='binary')
@@ -63,12 +91,28 @@ def plot_prob_matrix(P_dense):
     return 1
 
 def plot_graph(P_graph):
+    """Function for plotting the graph representation of the probability matrix
+
+    :param P_graph: graph form of the probability matrix
+    :return: none, plots graph representation of probability matrix
+    """
     # Visualize unclustered graph
     plt.figure()
     nx.draw_kamada_kawai(P_graph,with_labels=True)
     return 1
 
 def plot_extreme(t,u,tess_ind_trans,nodes_to,nodes_from):
+    """Function for plotting time series with extreme event and precursor identification
+    OLD, INEFFICIENT IMPLEMENTATION
+
+    :param t: time vector
+    :param u: matrix of data (of size 2*Nt)
+    :param tess_ind_trans: datapoint time series already translated to tesselated lexicographic ordering
+    :param nodes_to: vector of nodes - extreme events
+    :param nodes_from: vector of nodes which can transition to extreme events
+    :return: none, plots time series with extreme event (blue) and precursor (red) identification
+    """
+
     # Identify where we have a from node followed by a to node
     # Visualization
     fig, axs = plt.subplots(2)
@@ -96,7 +140,21 @@ def plot_extreme(t,u,tess_ind_trans,nodes_to,nodes_from):
                 axs[1].scatter(t_to, u[j,1], marker='s', facecolors='None', edgecolor='red')
     return 1
 
-def sine_process(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar, N, dim, plotting):
+def sine_process(t0=0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar, N, dim=2, plotting):
+    """Big loop with calculation for the sine wave system enclosed
+
+    :param t0: starting time, default t0=0
+    :param tf: final time
+    :param dt: time step
+    :param nt_ex: number of time steps that the extreme event will last
+    :param rand_threshold: threshold defining the probability of the extreme event
+    :param rand_amplitude: amplitude defining the jump of the extreme event
+    :param rand_scalar: scalar value defining the size of the extreme event
+    :param N: number of tesselation discretisations per dimension
+    :param dim: number of dimensions, default 2
+    :param plotting: bool property defining whether to plot the results
+    :return: none, runs calculations and plots results; can be modified to output the final deflated probability matrix
+    """
     t, u = data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
     if plotting:
         plot_time_series(t, u)
@@ -134,24 +192,6 @@ def sine_process(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar,
     P1_graph = to_graph(P1)
     if plotting:
         plot_graph(P1_graph)
-
-    #TEMPORARY!!
-    # Color tesselation hypercubes by cluster affiliation - not efficient!!
-    # plt.figure()
-    # ax = plt.axes()
-    # for i in range(len(D[0, :])):  # for all communities
-    #     print("Community: ", i)
-    #     print("Nodes: ", end='')
-    #     nodes = np.array(D[:, i].nonzero())
-    #     print(nodes)
-    #     temp_nodes = [0, 0]
-    #     for j in range(len(tess_ind_trans)):
-    #         if tess_ind_trans[j] in nodes:
-    #             temp_nodes = np.vstack([temp_nodes, tess_ind[j, :]])
-    #     temp_nodes = temp_nodes[1:, :]
-    #     ax.scatter(temp_nodes[:, 0], temp_nodes[:, 1])
-    #TEMPORARY!!
-
 
     # Identify extreme event it's precursor
     extreme_from, extreme_to, nodes_from, nodes_to = extr_iden(P1,P_community,'deviation',extr_trans)  # for bifurcation it detect's wrong path
