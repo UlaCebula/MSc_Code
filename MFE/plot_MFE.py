@@ -12,7 +12,7 @@ def reconstruct_velocity(Nx, Ny, Nz, xx, yy, zz, a, alpha, gamma):
     u = np.zeros((Nx, Nz, Ny, 3, Nt)) #Nx*Ny*t for 2d
 
     for it in range(Nt):    #np.linspace(39500, 41000, 10, endpoint=True, dtype=int):
-        iy = 0
+        iy = 0  # for 3D ->another for loop
         for ix in range(len(xx)):
             for iz in range(len(zz)):
                 x = xx[ix]
@@ -31,63 +31,85 @@ def reconstruct_velocity(Nx, Ny, Nz, xx, yy, zz, a, alpha, gamma):
                 u[ix, iz, iy,:, it] = np.matmul(uu,a[it,:])
     return u
 
-def compute_grad(Nx,Nz,Nt,dx,dy,u):     # change to have the possibility of having Ny>1
-    #two components of velocity - just 2d
-    dudx = np.zeros((Nx,Nz,Nt))
-    dudy = np.zeros((Nx,Nz,Nt))
-    dvdx = np.zeros((Nx,Nz,Nt))
-    dvdy = np.zeros((Nx,Nz,Nt))
-    dwdx = np.zeros((Nx,Nz,Nt))
-    dwdy = np.zeros((Nx,Nz,Nt))
-
-    # FD discertization to find gradients
+def compute_grad(Nx,Ny,Nz,Nt,dx,dy,dz,u):     # change to have the possibility of having Ny>1
+    # FD discretisation to find gradients
     for i in range(Nt):
-        u_loc = np.squeeze(u[:, :, 0, i])   #u is squeezed already
-        v_loc = np.squeeze(u[:, :, 1, i])
-        w_loc = np.squeeze(u[:, :, 2, i])
+        if dy==0:   # for 2D flow
+            dudx = np.zeros((Nx, Nz, Nt))
+            dudy = 0
+            dudz = np.zeros((Nx, Nz, Nt))
+            dvdx = np.zeros((Nx, Nz, Nt))
+            dvdy = 0
+            dvdz = np.zeros((Nx, Nz, Nt))
+            dwdx = np.zeros((Nx, Nz, Nt))
+            dwdy = 0
+            dwdz = np.zeros((Nx, Nz, Nt))
+            u_loc = np.squeeze(u[:, :, 0, i])   #u is squeezed already
+            v_loc = np.squeeze(u[:, :, 1, i])
+            w_loc = np.squeeze(u[:, :, 2, i])
 
-        # for inner points
-        # du/dx
-        dudx[:,:,i] = (np.append(u_loc[1:, :],np.zeros((1,Nz)), axis=0)-np.append(np.zeros((1,Nz)),u_loc[:-1, :], axis=0))/(2*dx)  # shift the matrices for a quick FD approx
-        # dv/dx
-        dvdx[:,:,i] = (np.append(v_loc[1:, :],np.zeros((1,Nz)), axis=0)-np.append(np.zeros((1,Nz)),v_loc[:-1, :], axis=0))/(2*dx)  # shift the matrices
-        # dw/dx
-        dwdx[:, :, i] = (np.append(w_loc[1:, :], np.zeros((1, Nz)), axis=0) - np.append(np.zeros((1, Nz)), w_loc[:-1, :],axis=0)) / (2 * dx)  # shift the matrices
+            # for inner points
+            # du/dx
+            dudx[:,:,i] = (np.append(u_loc[1:, :],np.zeros((1,Nz)), axis=0)-np.append(np.zeros((1,Nz)),u_loc[:-1, :], axis=0))/(2*dx)  # shift the matrices for a quick FD approx
+            # dv/dx
+            dvdx[:,:,i] = (np.append(v_loc[1:, :],np.zeros((1,Nz)), axis=0)-np.append(np.zeros((1,Nz)),v_loc[:-1, :], axis=0))/(2*dx)  # shift the matrices
+            # dw/dx
+            dwdx[:, :, i] = (np.append(w_loc[1:, :], np.zeros((1, Nz)), axis=0) - np.append(np.zeros((1, Nz)), w_loc[:-1, :],axis=0)) / (2 * dx)  # shift the matrices
 
-        # du/dy
-        dudy[:,:,i] = (np.append(u_loc[:, 1:],np.zeros((Nz,1)), axis=1)-np.append(np.zeros((Nz,1)),u_loc[:, :-1], axis=1))/(2*dy)  # shift the matrices for a quick FD approx
-        # dv/dy
-        dvdy[:,:,i] = (np.append(v_loc[:, 1:],np.zeros((Nz,1)), axis=1)-np.append(np.zeros((Nz,1)),v_loc[:, :-1], axis=1))/(2*dy)  # shift the matrices for a quick FD approx
-        # dw/dy
-        dwdy[:,:,i] = (np.append(w_loc[:, 1:],np.zeros((Nz,1)), axis=1)-np.append(np.zeros((Nz,1)),w_loc[:, :-1], axis=1))/(2*dy)  # shift the matrices for a quick FD approx
+            # du/dz
+            dudz[:,:,i] = (np.append(u_loc[:, 1:],np.zeros((Nz,1)), axis=1)-np.append(np.zeros((Nz,1)),u_loc[:, :-1], axis=1))/(2*dz)  # shift the matrices for a quick FD approx
+            # dv/dz
+            dvdz[:,:,i] = (np.append(v_loc[:, 1:],np.zeros((Nz,1)), axis=1)-np.append(np.zeros((Nz,1)),v_loc[:, :-1], axis=1))/(2*dz)  # shift the matrices for a quick FD approx
+            # dw/dz
+            dwdz[:,:,i] = (np.append(w_loc[:, 1:],np.zeros((Nz,1)), axis=1)-np.append(np.zeros((Nz,1)),w_loc[:, :-1], axis=1))/(2*dz)  # shift the matrices for a quick FD approx
 
-        ## boundary values- 1st order
-        dudx[0,:,i]= (u_loc[1,:]-u_loc[0,:])/dx
-        dudx[-1,:,i]= (u_loc[-1,:]-u_loc[-2,:])/dx
-        dvdx[0,:,i]= (v_loc[1,:]-v_loc[0,:])/dx
-        dvdx[-1,:,i]= (v_loc[-1,:]-v_loc[-2,:])/dx
-        dwdx[0,:,i]= (w_loc[1,:]-w_loc[0,:])/dx
-        dwdx[-1,:,i]= (w_loc[-1,:]-w_loc[-2,:])/dx
+            ## boundary values- 1st order
+            dudx[0,:,i]= (u_loc[1,:]-u_loc[0,:])/dx
+            dudx[-1,:,i]= (u_loc[-1,:]-u_loc[-2,:])/dx
+            dvdx[0,:,i]= (v_loc[1,:]-v_loc[0,:])/dx
+            dvdx[-1,:,i]= (v_loc[-1,:]-v_loc[-2,:])/dx
+            dwdx[0,:,i]= (w_loc[1,:]-w_loc[0,:])/dx
+            dwdx[-1,:,i]= (w_loc[-1,:]-w_loc[-2,:])/dx
 
-        dudy[:,0,i]= (u_loc[:,1]-u_loc[:,0])/dy
-        dudy[:,-1,i]= (u_loc[:,-1]-u_loc[:,-2])/dy
-        dvdy[:,0,i]= (v_loc[:,1]-v_loc[:,0])/dy
-        dvdy[:,-1,i]= (v_loc[:,-1]-v_loc[:,-2])/dy
-        dwdy[:,0,i]= (w_loc[:,1]-w_loc[:,0])/dy
-        dwdy[:,-1,i]= (w_loc[:,-1]-w_loc[:,-2])/dy
+            dudz[:,0,i]= (u_loc[:,1]-u_loc[:,0])/dz
+            dudz[:,-1,i]= (u_loc[:,-1]-u_loc[:,-2])/dz
+            dvdz[:,0,i]= (v_loc[:,1]-v_loc[:,0])/dy
+            dvdz[:,-1,i]= (v_loc[:,-1]-v_loc[:,-2])/dz
+            dwdz[:,0,i]= (w_loc[:,1]-w_loc[:,0])/dz
+            dwdz[:,-1,i]= (w_loc[:,-1]-w_loc[:,-2])/dz
 
-    return dudx, dudy, dvdx, dvdy, dwdx, dwdy
+        else:   # 3D flow
+            dudx = np.zeros((Nx, Ny, Nz, Nt))
+            dudy = np.zeros((Nx, Ny, Nz, Nt))
+            dudz = np.zeros((Nx, Ny, Nz, Nt))
+            dvdx = np.zeros((Nx, Ny, Nz, Nt))
+            dvdy = np.zeros((Nx, Ny, Nz, Nt))
+            dvdz = np.zeros((Nx, Ny, Nz, Nt))
+            dwdx = np.zeros((Nx, Ny, Nz, Nt))
+            dwdy = np.zeros((Nx, Ny, Nz, Nt))
+            dwdz = np.zeros((Nx, Ny, Nz, Nt))
 
-def compute_diss(Nx, Nz, Nt, dx,dy,u):
+            print("3D algorithm not implemented!!! Please look at 2D solution.")
+
+
+    return dudx, dudy, dudz, dvdx, dvdy, dvdz, dwdx, dwdy, dwdz
+
+def compute_diss(Nx, Ny, Nz, Nt, dx, dy, dz, u):
     Diss = np.zeros((Nt,1))
     nu = 1.  # doesn't matter because it's a scalar constant the same for all time instants
 
     # calculate gradients
-    dudx, dudy, dvdx, dvdy, dwdx, dwdy = compute_grad(Nx, Nz, Nt, dx,dy, u)
+    dudx, dudy, dudz, dvdx, dvdy, dvdz, dwdx, dwdy, dwdz = compute_grad(Nx, Ny, Nz, Nt, dx, dy, dz, u)
 
     # dissipation
     for i in range(Nt):
-        Diss[i] = nu * np.sum(dudx[:,:,i]*dudx[:,:,i])+np.sum(dudy[:,:,i]*dvdx[:,:,i])+np.sum(dvdy[:,:,i]*dvdy[:,:,i])+np.sum(dvdx[:,:,i]*dudy[:,:,i])
+        if dy==0:   # 2D flow
+            Diss[i] = nu * np.sum(dudx[:,:,i]*dudx[:,:,i])+np.sum(dudz[:,:,i]*dwdx[:,:,i])+np.sum(dwdx[:,:,i]*dudz[:,:,i])+...
+            np.sum(dwdz[:,:,i]*dwdz[:,:,i])
+        else:   #3D flow
+            Diss[i] = nu * np.sum(dudx[:,:,:,i]*dudx[:,:,:,i])+np.sum(dudy[:,:,:,i]*dvdx[:,:,:,i])+np.sum(dudz[:,:,:,i]*dwdx[:,:,:,i])+...
+            np.sum(dvdx[:,:,:,i]*dudy[:,:,:,i])+np.sum(dvdy[:,:,:,i]*dvdy[:,:,:,i])+np.sum(dvdz[:,:,:,i]*dwdy[:,:,:,i])+...
+            np.sum(dwdx[:,:,:,i]*dudz[:,:,:,i])+np.sum(dwdy[:,:,:,i]*dvdz[:,:,:,i])+np.sum(dwdz[:,:,:,i]*dwdz[:,:,:,i])
 
     return Diss
 
@@ -99,6 +121,7 @@ Lx = np.array(hf.get('/Lx'))
 Lz = np.array(hf.get('/Lz'))
 
 Lx = np.array(hf.get('/Lx'))
+Ly = 0  # 2D flow
 Lz = np.array(hf.get('/Lz'))
 Re = np.array(hf.get('/Re'))
 alpha = np.array(hf.get('/alpha'))
@@ -112,15 +135,16 @@ Nt = np.size(t)
 
 Nx = 20
 Nz = 20
-Ny = 1
+Ny = 1 # for 2D flow
 
 xx = np.linspace(0, Lx, Nx, endpoint=True)
 zz = np.linspace(0, Lz, Nz, endpoint=True)
-yy = [0]
+yy = [0] # for 2D flow
 dx = xx[1]-xx[0]
-dy = zz[1]-zz[0]
+dz = zz[1]-zz[0]
+dy = 0 # for 2D flow
 
-# To reconstruct velocity
+########### Reconstruct velocity #################
 u = reconstruct_velocity(Nx, Ny, Nz, xx, yy, zz, a, alpha, gamma)
 np.save('MFE_Re600_velocity.npy', u)
 
@@ -134,11 +158,10 @@ plt.figure()
 plt.plot(t, u[9,9,0,:])   #u velocity components at random middle point (9,9)
 plt.show()
 
-
-# Calculate dissipation
+########### Calculate dissipation #################
 # u = np.load('MFE_Re600_velocity.npy')
 # Nt = np.size(u[0,0,0,:])
-D = compute_diss(Nx, Nz, Nt, dx,dy, u)
+D = compute_diss(Nx, Nz, Nt, dx,dz, u)
 np.save('MFE_Re600_dissipation.npy', D)
 
 # Read and check dissipation
@@ -149,7 +172,7 @@ plt.figure()
 plt.plot(t, D)
 plt.show()
 
-# Calculate energy
+########### Calculate energy #################
 # u = np.load('MFE_Re600_velocity.npy')
 # Nt = np.size(u[0,0,0,:])
 E = np.zeros((Nt,1))

@@ -359,7 +359,7 @@ def plot_phase_space(x, type):
         plt.xlabel("I")
     return 1
 
-def plot_tesselated_space(tess_ind,type):
+def plot_tesselated_space(tess_ind,type, least_prob_tess):
     """Function for plotting the MFE data in tesselated phase space
 
     :param tess_ind: matrix which includes the indices of the box taken by the data points in consequent time steps, can
@@ -376,7 +376,11 @@ def plot_tesselated_space(tess_ind,type):
 
     if type=='dissipation':
         plt.figure(figsize=(7, 7))
-        plt.scatter(tess_ind[:,0], tess_ind[:,1], s=200, marker='s', facecolors = 'None', edgecolor = 'blue') #I should relate somehow s to N and the fig size
+        plt.scatter(tess_ind[:,1], tess_ind[:,0], s=200, marker='s', facecolors = 'None', edgecolor = 'blue') #I should relate somehow s to N and the fig size
+        for i in range(len(least_prob_tess[:,0])):  # for all least probable events
+            plt.plot([least_prob_tess[i,0],least_prob_tess[i,2]], [least_prob_tess[i,1],least_prob_tess[i,3]], '--r')
+            # plt.scatter(least_prob_tess[i,0],least_prob_tess[i,1], facecolors = 'red', edgecolor = 'red')     # from
+            # plt.scatter(least_prob_tess[i,2], least_prob_tess[i,3], facecolors='green', edgecolor='green')    # to (or maybe the other way around)
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.xlabel("I")
@@ -406,7 +410,7 @@ def plot_graph(P_graph):
     nx.draw_kamada_kawai(P_graph,with_labels=True)
     return 1
 
-def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster ):
+def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster,extr_cluster,palette):
     """Function for plotting phase space with cluster affiliation
 
     :param x: data matrix (look at to_burst or read_DI)
@@ -430,14 +434,71 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster ):
         ax.set_title("Self-sustaining process")
 
     if type=='dissipation':
+        diss_m = np.mean(x[:,0]) # mean of dissipation
+        std_m = np.std(x[:, 0])  # standard deviation of dissipation
+
         plt.figure(figsize=(7, 7))
-        # plt.plot(I,D, 'b--')
+        plt.axhline(y=diss_m+5*std_m, color='r', linestyle='--') # plot horizontal cutoff
         for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
             plt.scatter(x[tess_ind_cluster == i,1],
-                        x[tess_ind_cluster == i,0])  # , c=palette[i])  # I should relate somehow s to N and the fig size
+                        x[tess_ind_cluster == i,0], c=palette[i,:])  # I should relate somehow s to N and the fig size
             x_mean = np.mean(x[tess_ind_cluster == i,1])
             y_mean = np.mean(x[tess_ind_cluster == i,0])
-            plt.text(x_mean, y_mean, str(i))  # numbers of clusters
+            # if cluster is extreme - plot number in red
+            if i in extr_cluster:
+                plt.text(x_mean, y_mean, str(i),color='r')  # numbers of clusters
+            else:
+                plt.text(x_mean, y_mean, str(i))  # numbers of clusters
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.xlabel("I")
+        plt.ylabel("D")
+
+    return 1
+
+def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_ind_cluster, extr_cluster, palette):
+
+    # if type=='burst':
+    #     plt.figure()
+    #     ax = plt.axes(projection='3d')
+    #     for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
+    #         ax.scatter(x[tess_ind_cluster==i,0], x[tess_ind_cluster==i,1], x[tess_ind_cluster==i,2])  # I should relate somehow s to N and the fig size
+    #         x_mean = np.mean(x[tess_ind_cluster == i, 0])
+    #         y_mean = np.mean(x[tess_ind_cluster == i, 1])
+    #         z_mean = np.mean(x[tess_ind_cluster == i, 2])
+    #         ax.text(x_mean, y_mean, z_mean, str(i))  # numbers of clusters
+    #     ax.set_xlabel("Roll & streak")
+    #     ax.set_ylabel("Mean shear")
+    #     ax.set_zlabel("Burst")
+    #     ax.set_title("Self-sustaining process")
+
+    if type=='dissipation':
+        # diss_m = np.mean(x[:,0]) # mean of dissipation
+        # std_m = np.std(x[:, 0])  # standard deviation of dissipation
+
+        # take only unique spots in tesselated space
+        x,indices=np.unique(tess_ind,return_index=True,axis=0)
+        x_clust = np.zeros((D_nodes_in_clusters.shape[1],1))
+        y_clust = np.zeros((D_nodes_in_clusters.shape[1],1))
+        num_clust = np.zeros((D_nodes_in_clusters.shape[1],1))
+
+        plt.figure(figsize=(7, 7))
+        for i in range(len(x[:,0])): #for each unique point
+            loc_clust = tess_ind_cluster[indices[i]]
+            num_clust[loc_clust]+=1
+            x_clust[loc_clust] += x[i,1]
+            y_clust[loc_clust] += x[i,0]
+
+            loc_col = palette[loc_clust,:]
+            plt.scatter(x[i,1], x[i,0], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
+
+        for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
+            x_mean = x_clust[i]/num_clust[i]
+            y_mean = y_clust[i]/num_clust[i]
+            if i in extr_cluster:
+                plt.text(x_mean, y_mean, str(i),color='r')  # numbers of clusters
+            else:
+                plt.text(x_mean, y_mean, str(i))  # numbers of clusters
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.xlabel("I")
@@ -498,6 +559,25 @@ def plot_time_series_extr_iden(y,t, tess_ind_cluster, from_cluster, extr_cluster
     plt.xlabel("t")
     return 1
 
+def find_least_probable(P,n,M):
+    P_dense = P.toarray()
+    P_dense = P_dense.flatten()
+    least_prob_tess = np.zeros((n,4))
+
+    least_prob = np.argsort(P_dense)[:n]
+    # for i in range(len(least_prob)):
+    #     flat_id = least_prob[i] # index of transformation in flattened prob
+    #     P_id =  # index of transformation in normal prob
+    #     least_prob_tess[i] =    # index of transformation in tesselated space
+    shape = (400,400)
+    least_prob = np.unravel_index(least_prob, shape)
+    least_prob = np.stack((least_prob[0],least_prob[1]))
+
+    for i in range(n):  # for all points
+        # translate least probable states to tesselated space
+        least_prob_tess[i,:] = [int(least_prob[0,i]/M),least_prob[0,i]%M,int(least_prob[1,i]/M),least_prob[1,i]%M]
+    return least_prob_tess
+
 def MFE_process(t,x,dim,M,extr_dim,type):
     """Big loop with calculation for the MFE system enclosed
 
@@ -524,6 +604,11 @@ def MFE_process(t,x,dim,M,extr_dim,type):
 
     # Visualize probability matrix
     plot_prob_matrix(P.toarray())
+
+    #Find 5 least probable transitions
+    least_prob_tess = find_least_probable(P,5,M)
+
+    plot_tesselated_space(tess_ind, type, least_prob_tess)
 
     # Clustering
     P_community = spectralopt.partition(P_graph, refine=False)  # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
@@ -553,7 +638,9 @@ def MFE_process(t,x,dim,M,extr_dim,type):
     plot_graph(P_graph_old)
 
     # color palette
-    palette = sns.color_palette(None, D_nodes_in_clusters.shape[1])
+    palette = np.zeros((D_nodes_in_clusters.shape[1],3))
+    for i in range(D_nodes_in_clusters.shape[1]):
+        palette[i,:] = np.random.rand(1,3)
 
     # translate datapoints to cluster number affiliation
     tess_ind_cluster = data_to_clusters(tess_ind_trans, D_nodes_in_clusters)
@@ -569,7 +656,7 @@ def MFE_process(t,x,dim,M,extr_dim,type):
         plot_time_series_clustered(x[:,0], t, tess_ind_cluster, palette, type)
 
     # Visualize phase space trajectory with clusters
-    plot_phase_space_clustered(x, type, D_nodes_in_clusters, tess_ind_cluster)
+    plot_phase_space_clustered(x, type, D_nodes_in_clusters, tess_ind_cluster, extr_cluster,palette)
 
     # Plot time series with extreme event identification
     if type == 'burst':
@@ -577,7 +664,12 @@ def MFE_process(t,x,dim,M,extr_dim,type):
     if type == 'dissipation':
         plot_time_series_extr_iden(x[:,0], t, tess_ind_cluster, from_cluster, extr_cluster, type)
 
+    #plot tesselated phase space with clusters
+    plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_ind_cluster, extr_cluster, palette)
+
     # Visualize probability matrix
     plot_prob_matrix(P_old.toarray())
+
+    plt.show()
 
     return 1
