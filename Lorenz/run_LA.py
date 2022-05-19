@@ -25,7 +25,7 @@ r = 28
 
 # time discretization
 t0 = 0.0
-tf = 30.0 #110.0
+tf = 110.0
 dt = 0.01
 t = np.arange(t0,tf,dt)
 N = np.size(t)
@@ -45,26 +45,29 @@ t = t[500:]
 # Visualize data
 ax = plt.figure().add_subplot(projection='3d')
 ax.plot(x[:,0], x[:,1], x[:,2], lw=0.5)
-ax.set_xlabel("X Axis")
-ax.set_ylabel("Y Axis")
-ax.set_zlabel("Z Axis")
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+ax.set_zlabel("z")
 ax.set_title("Lorenz Attractor")
 
 # Visualization of the two dimensions - time series
 fig, axs = plt.subplots(3)
-fig.suptitle('Vertically stacked subplots')
+# fig.suptitle('Vertically stacked subplots')
 
 plt.subplot(3,1,1)
 plt.plot(t, x[:,0])
 plt.ylabel("$x$")
+plt.xlim((t0,tf))
 plt.xlabel("t")
 plt.subplot(3,1,2)
 plt.plot(t, x[:,1])
 plt.ylabel("$y$")
+plt.xlim(t0,tf)
 plt.xlabel("t")
 plt.subplot(3,1,3)
 plt.plot(t, x[:,2])
 plt.ylabel("$z$")
+plt.xlim(t0,tf)
 plt.xlabel("t")
 
 # Tesselation
@@ -74,9 +77,9 @@ tess_ind, extr_id = tesselate(x,M,0)    # where 0 indicates the dimension by whi
 # Visualize tessellation
 ax = plt.figure().add_subplot(projection='3d')
 ax.scatter3D(tess_ind[:,0], tess_ind[:,1], tess_ind[:,2])
-ax.set_xlabel("X Axis")
-ax.set_ylabel("Y Axis")
-ax.set_zlabel("Z Axis")
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+ax.set_zlabel("z")
 
 # Transition probability
 P = probability(tess_ind, 'classic') # create sparse transition probability matrix
@@ -133,6 +136,9 @@ for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
     y_mean = np.mean(tess_ind[tess_ind_cluster==i,1])
     z_mean = np.mean(tess_ind[tess_ind_cluster==i,2])
     ax.text(x_mean, y_mean, z_mean, str(i))  # numbers of clusters
+ax.set_xlabel("x")
+ax.set_ylabel("y")
+ax.set_zlabel("z")
 
 
 plt.figure()
