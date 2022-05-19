@@ -31,8 +31,8 @@ def tesselate(x,N,ex_dim,nr_dev=7):
         point_ind[point_ind==N] = N-1   # for all point located at the very end (max) - put them in the last cell
         tess_ind = np.vstack([tess_ind, point_ind])   # sparse approach, translate the points into the indices of the tesselation
                                                         # to get the tesselated space, just take the unique rows of tess_ind
-    m= np.zeros_like(ex_dim)
-    dev = np.zeros_like(ex_dim)
+    m = np.zeros_like(ex_dim,dtype=float)
+    dev = np.zeros_like(ex_dim,dtype=float)
     # Find tesselated index of extreme event
     for i in range(len(ex_dim)):
         loc_ex_dim = ex_dim[i]
@@ -44,7 +44,11 @@ def tesselate(x,N,ex_dim,nr_dev=7):
             temp = abs(x[:,ex_dim[i]])>=m[i]+nr_dev*dev[i] # define extreme event as nr_dev the standard deviation away from the mean
         else:   # for other dimensions - delete from the vector that we already obtained
             temp = np.logical_and((temp==True), abs(x[:, ex_dim[i]]) >= m[i] + nr_dev * dev[i])
-    extr_id = tess_ind[temp,:]
+    if len(ex_dim)>0:   # if we have an extreme event (we are supposed to have)
+        extr_id = tess_ind[temp,:]
+    else:
+        extr_id=[]
+
     return tess_ind, extr_id    # returns indices of occupied spaces, without values and the index of the identified extreme event
 
 def tess_to_lexi(x,N,dim):
@@ -313,8 +317,8 @@ def extr_iden(extr_trans, D_nodes_in_clusters, P_old):
     :return: returns tuple of cluster of the extreme event and the clusters of its predecessor
     """
     ## Identify extreme event it's precursor
-    if type(extr_trans)==np.int32:
-        extr_cluster = int(D_nodes_in_clusters.col[D_nodes_in_clusters.row == extr_trans])
+    if type(extr_trans)==np.int32 or type(extr_trans)==int:
+        extr_cluster = D_nodes_in_clusters.col[D_nodes_in_clusters.row == extr_trans]
         from_cluster = P_old.col[P_old.row == extr_cluster]
     else:
         extr_cluster=[]
@@ -457,6 +461,23 @@ def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
         plt.minorticks_on()
         plt.xlabel("I")
         plt.ylabel("D")
+
+    if type=='sine':
+        plt.figure(figsize=(7, 7))
+        plt.scatter(tess_ind[:, 0], tess_ind[:, 1], s=200, marker='s', facecolors='None',
+                    edgecolor='blue')  # I should relate somehow s to N and the fig size
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.xlabel("x")
+        plt.ylabel("y")
+
+    if type=='LA':
+        ax = plt.figure().add_subplot(projection='3d')
+        ax.scatter3D(tess_ind[:,0], tess_ind[:,1], tess_ind[:,2])
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
+
     return 1
 
 def plot_phase_space(x, type):
@@ -481,9 +502,26 @@ def plot_phase_space(x, type):
         plt.title("Dissipation vs energy")
         plt.ylabel("D")
         plt.xlabel("I")
+
+    if type=='sine':
+        plt.figure(figsize=(7, 7))
+        plt.plot(x[:,0],x[:,1])
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.xlabel("$x$")
+        plt.ylabel("$y$")
+
+    if type=='LA':
+        ax = plt.figure().add_subplot(projection='3d')
+        ax.plot(x[:,0], x[:,1], x[:,2], lw=0.5)
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
+        ax.set_title("Lorenz Attractor")
+
     return 1
 
-def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster,extr_cluster,palette):
+def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster,extr_cluster,nr_dev,palette):
     """Function for plotting phase space with cluster affiliation
 
     :param x: data matrix (look at to_burst or read_DI)
@@ -513,8 +551,8 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster,extr_
         std_i = np.std(x[:, 1])  # standard deviation of dissipation
 
         plt.figure(figsize=(7, 7))
-        plt.axhline(y=diss_m+5*std_m, color='r', linestyle='--') # plot horizontal cutoff
-        plt.axvline(x=diss_i + 5 * std_i, color='r', linestyle='--')  # plot horizontal cutoff
+        plt.axhline(y=diss_m+nr_dev*std_m, color='r', linestyle='--') # plot horizontal cutoff
+        plt.axvline(x=diss_i + nr_dev* std_i, color='r', linestyle='--')  # plot horizontal cutoff
         for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
             plt.scatter(x[tess_ind_cluster == i,1],
                         x[tess_ind_cluster == i,0], c=palette[i,:])  # I should relate somehow s to N and the fig size
@@ -529,6 +567,43 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster,extr_
         plt.minorticks_on()
         plt.xlabel("I")
         plt.ylabel("D")
+
+    if type=='sine':
+        diss_u1 = np.mean(x[:,0]) # mean of u1
+        std_u1 = np.std(x[:, 0])  # standard u1
+        diss_u2 = np.mean(x[:, 1])  # mean of u2
+        std_u2 = np.std(x[:, 1])  # standard u2
+
+        plt.figure(figsize=(7, 7))
+        plt.axhline(y=diss_u1+nr_dev*std_u1, color='r', linestyle='--') # plot horizontal cutoff
+        plt.axvline(x=diss_u2 + nr_dev*std_u2, color='r', linestyle='--')  # plot horizontal cutoff
+        for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
+            plt.scatter(x[tess_ind_cluster == i,0],
+                        x[tess_ind_cluster == i,1], c=palette[i,:])  # I should relate somehow s to N and the fig size
+            x_mean = np.mean(x[tess_ind_cluster == i,0])
+            y_mean = np.mean(x[tess_ind_cluster == i,1])
+            # if cluster is extreme - plot number in red
+            if i in extr_cluster:
+                plt.text(x_mean, y_mean, str(i),color='r')  # numbers of clusters
+            else:
+                plt.text(x_mean, y_mean, str(i))  # numbers of clusters
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.xlabel("x")
+        plt.ylabel("y")
+
+    if type=='LA':
+        plt.figure()
+        ax = plt.axes(projection='3d')
+        for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
+            ax.scatter3D(x[tess_ind_cluster==i,0], x[tess_ind_cluster==i,1], x[tess_ind_cluster==i,2],c=palette[i,:])  # I should relate somehow s to N and the fig size
+            x_mean = np.mean(x[tess_ind_cluster==i,0])
+            y_mean = np.mean(x[tess_ind_cluster==i,1])
+            z_mean = np.mean(x[tess_ind_cluster==i,2])
+            ax.text(x_mean, y_mean, z_mean, str(i))  # numbers of clusters
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
 
     return 1
 
@@ -566,6 +641,34 @@ def plot_time_series(x,t, type):
         plt.subplot(2, 1, 2)
         plt.plot(t, x[:, 1])
         plt.ylabel("I")
+        plt.xlabel("t")
+
+    if type=='sine':
+        fig, axs = plt.subplots(2)
+        fig.suptitle('Vertically stacked subplots')
+        plt.subplot(2,1,1)
+        plt.plot(t, x[:,0])
+        plt.ylabel("$x$")
+        plt.xlabel("t")
+        plt.subplot(2,1,2)
+        plt.plot(t, x[:,1])
+        plt.ylabel("$y$")
+        plt.xlabel("t")
+
+    if type=='LA':
+        fig, axs = plt.subplots(3)
+        fig.suptitle('Vertically stacked subplots')
+        plt.subplot(3,1,1)
+        plt.plot(t, x[:,0])
+        plt.ylabel("$x$")
+        plt.xlabel("t")
+        plt.subplot(3,1,2)
+        plt.plot(t, x[:,1])
+        plt.ylabel("$y$")
+        plt.xlabel("t")
+        plt.subplot(3,1,3)
+        plt.plot(t, x[:,2])
+        plt.ylabel("$z$")
         plt.xlabel("t")
 
     return 1
@@ -619,6 +722,37 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
         plt.xlabel("I")
         plt.ylabel("D")
 
+    if type=='sine':
+
+        # take only unique spots in tesselated space
+        x,indices=np.unique(tess_ind,return_index=True,axis=0)
+        x_clust = np.zeros((D_nodes_in_clusters.shape[1],1))
+        y_clust = np.zeros((D_nodes_in_clusters.shape[1],1))
+        num_clust = np.zeros((D_nodes_in_clusters.shape[1],1))
+
+        plt.figure(figsize=(7, 7))
+        for i in range(len(x[:,0])): #for each unique point
+            loc_clust = tess_ind_cluster[indices[i]]
+            num_clust[loc_clust]+=1
+            x_clust[loc_clust] += x[i,0]
+            y_clust[loc_clust] += x[i,1]
+
+            loc_col = palette[loc_clust,:]
+            plt.scatter(x[i,0], x[i,1], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
+
+        for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
+            x_mean = x_clust[i]/num_clust[i]
+            y_mean = y_clust[i]/num_clust[i]
+            if i in extr_cluster:
+                plt.text(x_mean, y_mean, str(i),color='r')  # numbers of clusters
+            else:
+                plt.text(x_mean, y_mean, str(i))  # numbers of clusters
+
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.xlabel("x")
+        plt.ylabel("y")
+
     return 1
 
 def plot_time_series_clustered(y,t, tess_ind_cluster, palette, type):
@@ -644,6 +778,12 @@ def plot_time_series_clustered(y,t, tess_ind_cluster, palette, type):
     if type=='MFE_dissipation':
         plt.title("Dissipation vs time")
         plt.ylabel("$D$")
+    if type=='sine':
+        plt.title("$x$ vs time")
+        plt.ylabel("$x$")
+    if type == 'LA':
+        plt.title("$x$ vs time")
+        plt.ylabel("$x$")
     plt.xlabel("t")
 
     return 1
@@ -756,9 +896,13 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
         plot_time_series_clustered(x[:,2], t, tess_ind_cluster, palette, type)
     if type=='MFE_dissipation':
         plot_time_series_clustered(x[:,0], t, tess_ind_cluster, palette, type)
+    if type=='sine':
+        plot_time_series_clustered(x[:,0], t, tess_ind_cluster, palette, type)
+    if type == 'LA':
+        plot_time_series_clustered(x[:, 0], t, tess_ind_cluster, palette, type)
 
     # Visualize phase space trajectory with clusters
-    plot_phase_space_clustered(x, type, D_nodes_in_clusters, tess_ind_cluster, extr_cluster,palette)
+    plot_phase_space_clustered(x, type, D_nodes_in_clusters, tess_ind_cluster, extr_cluster,nr_dev, palette)
 
     # Plot time series with extreme event identification
     # if type == 'burst':
