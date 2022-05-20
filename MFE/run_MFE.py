@@ -259,47 +259,47 @@ def MFE_read_DI(filename, dt=0.25):
 
 plt.close('all') # close all open figures
 
-# #####BURST#########
-# type='MFE_burst'
-# filename = 'MFE_Re400_T10000.h5'
-# t,u = MFE_read_Fourier(filename)
-#
-# x = MFE_to_burst(u)
-# dim = 3
-# extr_dim = [2]   # define burst as the extreme dimension
-#
-# # Tesselation
-# M = 20
-#
-# plotting = True
-# min_clusters=30
-# max_it=10
-# extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
-# plt.show()
+#####BURST#########
+type='MFE_burst'
+filename = 'MFE_Re400_T10000.h5'
+t,u = MFE_read_Fourier(filename)
 
-####DISSIPATION#########
-type='MFE_dissipation'
-filename = 'MFE_Re600'
-dt = 0.25
-t,x = MFE_read_DI(filename, dt)
-dim = 2
-extr_dim = [0,1]    # define both dissipation and energy as the extreme dimensions
+x = MFE_to_burst(u)
+dim = 3
+extr_dim = [2]   # define burst as the extreme dimension
 
 # Tesselation
 M = 20
-
-# plt.figure()
-# plt.plot(t,x[:,0])
-# plt.axhline(np.mean(x[:,0])+5*np.std(x[:,0]))
-# plt.axhline(np.mean(x[:,0])+7*np.std(x[:,0]))
-# plt.axhline(np.mean(x[:,0])+9*np.std(x[:,0]))
-# plt.plot(t,x[:,1], 'r')
-# plt.axhline(np.mean(x[:,1])+5*np.std(x[:,1]), color='red')
-# plt.axhline(np.mean(x[:,1])+7*np.std(x[:,1]), color='red')
-# plt.axhline(np.mean(x[:,1])+9*np.std(x[:,1]), color='red')
 
 plotting = True
 min_clusters=30
 max_it=10
 extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
 plt.show()
+
+# ####DISSIPATION#########
+# type='MFE_dissipation'
+# filename = 'MFE_Re600'
+# dt = 0.25
+# t,x = MFE_read_DI(filename, dt)
+# dim = 2
+# extr_dim = [0,1]    # define both dissipation and energy as the extreme dimensions
+#
+# # Tesselation
+# M = 20
+#
+# # plt.figure()
+# # plt.plot(t,x[:,0])
+# # plt.axhline(np.mean(x[:,0])+5*np.std(x[:,0]))
+# # plt.axhline(np.mean(x[:,0])+7*np.std(x[:,0]))
+# # plt.axhline(np.mean(x[:,0])+9*np.std(x[:,0]))
+# # plt.plot(t,x[:,1], 'r')
+# # plt.axhline(np.mean(x[:,1])+5*np.std(x[:,1]), color='red')
+# # plt.axhline(np.mean(x[:,1])+7*np.std(x[:,1]), color='red')
+# # plt.axhline(np.mean(x[:,1])+9*np.std(x[:,1]), color='red')
+#
+# plotting = True
+# min_clusters=30
+# max_it=10
+# extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
+# plt.show()
