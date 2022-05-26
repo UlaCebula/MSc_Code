@@ -466,6 +466,59 @@ def cluster_centers(x,tess_ind, tess_ind_cluster, D_nodes_in_clusters,dim):
 
     return coord_clust, coord_clust_tess
 
+def plot_phase_space(x, type):
+    """Function for plotting the MFE data in phase space
+
+    :param x: data matrix (look at to_burst or read_DI)
+    :param type: string defining the type of analysis, either "burst" or "dissipation"
+    :return: none, plots data x in equivalent phase space
+    """
+    if type=='MFE_burst':
+
+        ax = plt.figure().add_subplot(projection='3d')
+        ax.plot(x[:,0], x[:,1], x[:,2], lw=0.5)
+        ax.set_xlabel("Roll & streak")
+        ax.set_ylabel("Mean shear")
+        ax.set_zlabel("Burst")
+        ax.set_title("Self-sustaining process")
+
+    if type=='MFE_dissipation':
+        plt.figure()
+        plt.plot(x[:,1], x[:,0])
+        plt.title("Dissipation vs energy")
+        plt.ylabel("D")
+        plt.xlabel("I")
+
+    if type=='sine':
+        plt.figure(figsize=(7, 7))
+        plt.plot(x[:,0],x[:,1])
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.xlabel("$x$")
+        plt.ylabel("$y$")
+
+    if type=='LA':
+        ax = plt.figure().add_subplot(projection='3d')
+        ax.plot(x[:,0], x[:,1], x[:,2], lw=0.5)
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
+        ax.set_title("Lorenz Attractor")
+
+    if type=='CDV':
+        plt.figure(figsize=(6, 6))
+        plt.scatter(x[:, 0], x[:, 3])
+        plt.ylabel("$x_4$")
+        plt.xlabel("$x_1$")
+
+    if type=='PM':
+        plt.figure(figsize=(6,6))
+        plt.plot(x[:,2], x[:,4])
+        plt.ylabel("$x_5$")
+        plt.xlabel("$x_3$")
+
+    return 1
+
 def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
     """Function for plotting the MFE data in tesselated phase space
 
@@ -506,50 +559,29 @@ def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
     if type=='LA':
         ax = plt.figure().add_subplot(projection='3d')
         ax.scatter3D(tess_ind[:,0], tess_ind[:,1], tess_ind[:,2])
-        ax.set_xlabel("x")
-        ax.set_ylabel("y")
-        ax.set_zlabel("z")
-
-    return 1
-
-def plot_phase_space(x, type):
-    """Function for plotting the MFE data in phase space
-
-    :param x: data matrix (look at to_burst or read_DI)
-    :param type: string defining the type of analysis, either "burst" or "dissipation"
-    :return: none, plots data x in equivalent phase space
-    """
-    if type=='MFE_burst':
-
-        ax = plt.figure().add_subplot(projection='3d')
-        ax.plot(x[:,0], x[:,1], x[:,2], lw=0.5)
-        ax.set_xlabel("Roll & streak")
-        ax.set_ylabel("Mean shear")
-        ax.set_zlabel("Burst")
-        ax.set_title("Self-sustaining process")
-
-    if type=='MFE_dissipation':
-        plt.figure()
-        plt.plot(x[:,1], x[:,0])
-        plt.title("Dissipation vs energy")
-        plt.ylabel("D")
-        plt.xlabel("I")
-
-    if type=='sine':
-        plt.figure(figsize=(7, 7))
-        plt.plot(x[:,0],x[:,1])
         plt.grid('minor', 'both')
         plt.minorticks_on()
-        plt.xlabel("$x$")
-        plt.ylabel("$y$")
-
-    if type=='LA':
-        ax = plt.figure().add_subplot(projection='3d')
-        ax.plot(x[:,0], x[:,1], x[:,2], lw=0.5)
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.set_zlabel("z")
-        ax.set_title("Lorenz Attractor")
+
+    if type=='CDV':
+        plt.figure(figsize=(6, 6))
+        plt.scatter(tess_ind[:, 0], tess_ind[:, 3], s=200, marker='s', facecolors='None',
+                    edgecolor='blue')
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.ylabel("$x_4$")
+        plt.xlabel("$x_1$")
+
+    if type=='PM':
+        plt.figure(figsize=(6, 6))
+        plt.scatter(tess_ind[:, 2], tess_ind[:, 4], s=200, marker='s', facecolors='None',
+                    edgecolor='blue')
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.ylabel("$x_5$")
+        plt.xlabel("$x_3$")
 
     return 1
 
@@ -622,6 +654,118 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         ax.set_ylabel("y")
         ax.set_zlabel("z")
 
+    if type=='CDV':
+        plt.figure(figsize=(6, 6))
+        for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
+            plt.scatter(x[tess_ind_cluster == i, 0],
+                        x[tess_ind_cluster == i, 3], c=palette[i, :])  # I should relate somehow s to N and the fig size
+            if i in extr_cluster:  # if cluster is extreme - plot number in red
+                plt.text(coord_centers[i, 0], coord_centers[i, 3], str(i), color='r')  # numbers of clusters
+            else:
+                plt.text(coord_centers[i, 0], coord_centers[i, 3], str(i))  # numbers of clusters
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.ylabel("$x_4$")
+        plt.xlabel("$x_1$")
+
+    if type=='PM':
+        plt.figure(figsize=(6,6))
+        for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
+            plt.scatter(x[tess_ind_cluster == i, 2],
+                        x[tess_ind_cluster == i, 4], c=palette[i, :])  # I should relate somehow s to N and the fig size
+            if i in extr_cluster:  # if cluster is extreme - plot number in red
+                plt.text(coord_centers[i, 2], coord_centers[i, 4], str(i), color='r')  # numbers of clusters
+            else:
+                plt.text(coord_centers[i, 2], coord_centers[i, 4], str(i))  # numbers of clusters
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.ylabel("$x_5$")
+        plt.xlabel("$x_3$")
+
+    return 1
+
+def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_ind_cluster, coord_centers_tess, extr_cluster, palette):
+    if type=='MFE_dissipation':
+        # take only unique spots in tesselated space
+        x,indices=np.unique(tess_ind,return_index=True,axis=0)
+
+        plt.figure(figsize=(7, 7))
+        for i in range(len(x[:,0])): #for each unique point
+            loc_clust = tess_ind_cluster[indices[i]]
+            loc_col = palette[loc_clust,:]
+            plt.scatter(x[i,1], x[i,0], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
+
+        for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
+            if i in extr_cluster:
+                plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i),color='r')  # numbers of clusters
+            else:
+                plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i))  # numbers of clusters
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.xlabel("I")
+        plt.ylabel("D")
+
+    if type=='sine':
+        # take only unique spots in tesselated space
+        x,indices=np.unique(tess_ind,return_index=True,axis=0)
+
+        plt.figure(figsize=(7, 7))
+        for i in range(len(x[:,0])): #for each unique point
+            loc_clust = tess_ind_cluster[indices[i]]
+            loc_col = palette[loc_clust,:]
+            plt.scatter(x[i,0], x[i,1], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
+
+        for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
+            if i in extr_cluster:
+                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,1], str(i),color='r')  # numbers of clusters
+            else:
+                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,1], str(i))  # numbers of clusters
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.xlabel("x")
+        plt.ylabel("y")
+
+    if type=='CDV':
+        # take only unique spots in tesselated space
+        x, indices = np.unique(tess_ind, return_index=True, axis=0)
+
+        plt.figure(figsize=(6, 6))
+        for i in range(len(x[:,0])): #for each unique point
+            loc_clust = tess_ind_cluster[indices[i]]
+            loc_col = palette[loc_clust,:]
+            plt.scatter(x[i,0], x[i,3], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
+
+        for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
+            if i in extr_cluster:
+                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,3], str(i),color='r')  # numbers of clusters
+            else:
+                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,3], str(i))  # numbers of clusters
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.ylabel("$x_4$")
+        plt.xlabel("$x_1$")
+
+    if type=='PM':
+        # take only unique spots in tesselated space
+        x, indices = np.unique(tess_ind, return_index=True, axis=0)
+
+        plt.figure(figsize=(6, 6))
+        for i in range(len(x[:, 0])):  # for each unique point
+            loc_clust = tess_ind_cluster[indices[i]]
+            loc_col = palette[loc_clust, :]
+            plt.scatter(x[i, 2], x[i, 4], s=200, marker='s', facecolors=loc_col,
+                        edgecolor=loc_col)  # I should relate somehow s to N and the fig size
+
+        for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
+            if i in extr_cluster:
+                plt.text(coord_centers_tess[i, 2], coord_centers_tess[i, 4], str(i), color='r')  # numbers of clusters
+            else:
+                plt.text(coord_centers_tess[i, 2], coord_centers_tess[i, 4], str(i))  # numbers of clusters
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
+        plt.ylabel("$x_5$")
+        plt.xlabel("$x_3$")
+
     return 1
 
 def plot_time_series(x,t, type):
@@ -688,48 +832,68 @@ def plot_time_series(x,t, type):
         plt.ylabel("$z$")
         plt.xlabel("t")
 
-    return 1
+    if type=='CDV':
 
-def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_ind_cluster, coord_centers_tess, extr_cluster, palette):
-    if type=='MFE_dissipation':
-        # take only unique spots in tesselated space
-        x,indices=np.unique(tess_ind,return_index=True,axis=0)
+        fig, axs = plt.subplots(3)
+        fig.suptitle("Dynamic behavior of the dimensions of a CDV flow")
+        plt.subplot(3,1,1)
+        plt.plot(t, x[:,0])
+        plt.ylabel("$x_1$")
+        plt.xlabel("t")
+        plt.subplot(3,1,2)
+        plt.plot(t, x[:,1])
+        plt.ylabel("$x_2$")
+        plt.xlabel("t")
+        plt.subplot(3,1,3)
+        plt.plot(t, x[:,2])
+        plt.ylabel("$x_3$")
+        plt.xlabel("t")
 
-        plt.figure(figsize=(7, 7))
-        for i in range(len(x[:,0])): #for each unique point
-            loc_clust = tess_ind_cluster[indices[i]]
-            loc_col = palette[loc_clust,:]
-            plt.scatter(x[i,1], x[i,0], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
+        fig, axs = plt.subplots(3)
+        fig.suptitle("Dynamic behavior of the dimensions of a CDV flow")
 
-        for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
-            if i in extr_cluster:
-                plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i),color='r')  # numbers of clusters
-            else:
-                plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i))  # numbers of clusters
-        plt.grid('minor', 'both')
-        plt.minorticks_on()
-        plt.xlabel("I")
-        plt.ylabel("D")
+        plt.subplot(3, 1, 1)
+        plt.plot(t, x[:, 3])
+        plt.ylabel("$x_4$")
+        plt.xlabel("t")
+        plt.subplot(3, 1, 2)
+        plt.plot(t, x[:, 4])
+        plt.ylabel("$x_5$")
+        plt.xlabel("t")
+        plt.subplot(3, 1, 3)
+        plt.plot(t, x[:, 5])
+        plt.ylabel("$x_6$")
+        plt.xlabel("t")
 
-    if type=='sine':
-        # take only unique spots in tesselated space
-        x,indices=np.unique(tess_ind,return_index=True,axis=0)
+    if type=='PM':
+        # Visualize dataset
+        fig, axs = plt.subplots(3)
+        fig.suptitle("Dynamic behavior of the dimensions of a PM flow")
 
-        plt.figure(figsize=(7, 7))
-        for i in range(len(x[:,0])): #for each unique point
-            loc_clust = tess_ind_cluster[indices[i]]
-            loc_col = palette[loc_clust,:]
-            plt.scatter(x[i,0], x[i,1], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
+        plt.subplot(3,1,1)
+        plt.plot(t, x[:,0])
+        plt.ylabel("$x_1$")
+        plt.xlabel("t")
+        plt.subplot(3,1,2)
+        plt.plot(t, x[:,1])
+        plt.ylabel("$x_2$")
+        plt.xlabel("t")
+        plt.subplot(3,1,3)
+        plt.plot(t, x[:,2])
+        plt.ylabel("$x_3$")
+        plt.xlabel("t")
 
-        for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
-            if i in extr_cluster:
-                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,1], str(i),color='r')  # numbers of clusters
-            else:
-                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,1], str(i))  # numbers of clusters
-        plt.grid('minor', 'both')
-        plt.minorticks_on()
-        plt.xlabel("x")
-        plt.ylabel("y")
+        fig, axs = plt.subplots(2)
+        fig.suptitle("Dynamic behavior of the dimensions of a PM flow")
+
+        plt.subplot(2,1,1)
+        plt.plot(t, x[:,3])
+        plt.ylabel("$x_4$")
+        plt.xlabel("t")
+        plt.subplot(2,1,2)
+        plt.plot(t, x[:,4])
+        plt.ylabel("$x_5$")
+        plt.xlabel("t")
 
     return 1
 
@@ -763,6 +927,12 @@ def plot_time_series_clustered(y,t, tess_ind_cluster, palette, type):
     if type == 'LA':
         plt.title("$x$ vs time")
         plt.ylabel("$x$")
+    if type=='CDV':
+        plt.title("$x_0$ vs time")
+        plt.ylabel("$x_0$")
+    if type=='PM':
+        plt.title("$x_5$ vs time")
+        plt.ylabel("$x_5$")
     plt.xlabel("t")
 
     return 1
@@ -813,6 +983,7 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
     if plotting:
         plot_time_series(x,t,type)
         plot_phase_space(x,type)
+        plot_tesselated_space(tess_ind, type)
 
     tess_ind_trans = tess_to_lexi(tess_ind, M, dim)
     P, extr_trans = prob_to_sparse(P, M, extr_id)  # translate matrix into 2D sparse array with points in lexicographic order, translates extr_id to lexicographic id
@@ -826,9 +997,9 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
     if plotting:
         # Visualize unclustered graph
         plot_graph(P_graph)
-        # Visualize probability matrix
-        plot_prob_matrix(P.toarray())
-        plot_tesselated_space(tess_ind, type)
+        if dim<4:  # the matrix will be too big
+            # Visualize probability matrix
+            plot_prob_matrix(P.toarray())
 
     # Clustering
     P_community = spectralopt.partition(P_graph, refine=first_refined)  # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
@@ -884,6 +1055,10 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
             plot_time_series_clustered(x[:,0], t, tess_ind_cluster, palette, type)
         if type == 'LA':
             plot_time_series_clustered(x[:, 0], t, tess_ind_cluster, palette, type)
+        if type == 'CDV':
+            plot_time_series_clustered(x[:, 0], t, tess_ind_cluster, palette, type)
+        if type == 'PM':
+            plot_time_series_clustered(x[:, 4], t, tess_ind_cluster, palette, type)
 
         # Visualize phase space trajectory with clusters
         plot_phase_space_clustered(x, type, D_nodes_in_clusters, tess_ind_cluster, coord_clust_centers, extr_cluster,nr_dev, palette)
