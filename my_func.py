@@ -508,12 +508,16 @@ def plot_phase_space(x, type):
     if type=='CDV':
         plt.figure(figsize=(6, 6))
         plt.scatter(x[:, 0], x[:, 3])
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
         plt.ylabel("$x_4$")
         plt.xlabel("$x_1$")
 
     if type=='PM':
         plt.figure(figsize=(6,6))
         plt.plot(x[:,2], x[:,4])
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
         plt.ylabel("$x_5$")
         plt.xlabel("$x_3$")
 
@@ -778,7 +782,7 @@ def plot_time_series(x,t, type):
     """
     if type=='MFE_burst':
         fig, axs = plt.subplots(3)
-        fig.suptitle('Vertically stacked subplots')
+        fig.suptitle("Dynamic behavior of the MFE flow")
         plt.subplot(3,1,1)
         plt.plot(t,x[:,0])
         plt.ylabel("Roll & streak")
@@ -794,7 +798,7 @@ def plot_time_series(x,t, type):
 
     if type=='MFE_dissipation':
         fig, axs = plt.subplots(2)
-        fig.suptitle('Vertically stacked subplots')
+        fig.suptitle("Dynamic behavior of the MFE flow")
         plt.subplot(2, 1, 1)
         plt.plot(t, x[:, 0])
         plt.ylabel("D")
@@ -806,7 +810,7 @@ def plot_time_series(x,t, type):
 
     if type=='sine':
         fig, axs = plt.subplots(2)
-        fig.suptitle('Vertically stacked subplots')
+        fig.suptitle("Dynamic behavior of the sine wave")
         plt.subplot(2,1,1)
         plt.plot(t, x[:,0])
         plt.ylabel("$x$")
@@ -818,7 +822,7 @@ def plot_time_series(x,t, type):
 
     if type=='LA':
         fig, axs = plt.subplots(3)
-        fig.suptitle('Vertically stacked subplots')
+        fig.suptitle("Dynamic behavior of the Lorenz Attractor")
         plt.subplot(3,1,1)
         plt.plot(t, x[:,0])
         plt.ylabel("$x$")
@@ -835,63 +839,74 @@ def plot_time_series(x,t, type):
     if type=='CDV':
 
         fig, axs = plt.subplots(3)
-        fig.suptitle("Dynamic behavior of the dimensions of a CDV flow")
+        fig.suptitle("Dynamic behavior of the CDV flow")
         plt.subplot(3,1,1)
         plt.plot(t, x[:,0])
+        plt.xlim([t[0],t[-1]])
         plt.ylabel("$x_1$")
         plt.xlabel("t")
         plt.subplot(3,1,2)
         plt.plot(t, x[:,1])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("$x_2$")
         plt.xlabel("t")
         plt.subplot(3,1,3)
         plt.plot(t, x[:,2])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("$x_3$")
         plt.xlabel("t")
 
         fig, axs = plt.subplots(3)
-        fig.suptitle("Dynamic behavior of the dimensions of a CDV flow")
+        fig.suptitle("Dynamic behavior of the CDV flow")
 
         plt.subplot(3, 1, 1)
         plt.plot(t, x[:, 3])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("$x_4$")
         plt.xlabel("t")
         plt.subplot(3, 1, 2)
         plt.plot(t, x[:, 4])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("$x_5$")
         plt.xlabel("t")
         plt.subplot(3, 1, 3)
         plt.plot(t, x[:, 5])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("$x_6$")
         plt.xlabel("t")
 
     if type=='PM':
         # Visualize dataset
         fig, axs = plt.subplots(3)
-        fig.suptitle("Dynamic behavior of the dimensions of a PM flow")
+        fig.suptitle("Dynamic behavior of the PM flow")
 
         plt.subplot(3,1,1)
         plt.plot(t, x[:,0])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("$x_1$")
         plt.xlabel("t")
         plt.subplot(3,1,2)
         plt.plot(t, x[:,1])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("$x_2$")
         plt.xlabel("t")
         plt.subplot(3,1,3)
         plt.plot(t, x[:,2])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("$x_3$")
         plt.xlabel("t")
 
         fig, axs = plt.subplots(2)
-        fig.suptitle("Dynamic behavior of the dimensions of a PM flow")
+        fig.suptitle("Dynamic behavior of the PM flow")
 
         plt.subplot(2,1,1)
         plt.plot(t, x[:,3])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("$x_4$")
         plt.xlabel("t")
         plt.subplot(2,1,2)
         plt.plot(t, x[:,4])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("$x_5$")
         plt.xlabel("t")
 
@@ -982,6 +997,7 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
 
     if plotting:
         plot_time_series(x,t,type)
+        plt.show()
         plot_phase_space(x,type)
         plot_tesselated_space(tess_ind, type)
 
@@ -1049,14 +1065,8 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
         # Plot time series with clusters
         if type=='MFE_burst':
             plot_time_series_clustered(x[:,2], t, tess_ind_cluster, palette, type)
-        if type=='MFE_dissipation':
+        if type=='MFE_dissipation' or type=='sine'or type=='LA' or type=='CDV':
             plot_time_series_clustered(x[:,0], t, tess_ind_cluster, palette, type)
-        if type=='sine':
-            plot_time_series_clustered(x[:,0], t, tess_ind_cluster, palette, type)
-        if type == 'LA':
-            plot_time_series_clustered(x[:, 0], t, tess_ind_cluster, palette, type)
-        if type == 'CDV':
-            plot_time_series_clustered(x[:, 0], t, tess_ind_cluster, palette, type)
         if type == 'PM':
             plot_time_series_clustered(x[:, 4], t, tess_ind_cluster, palette, type)
 
@@ -1094,4 +1104,5 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
 
     for obj in clusters:
         print(obj.nr, obj.nodes, obj.center, obj.is_extreme)
+
     return 1
