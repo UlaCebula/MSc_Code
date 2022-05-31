@@ -39,31 +39,5 @@ t = t[500:]
 M=20
 extr_dim = []   # dimension of extreme event, here none
 
-extreme_event_identification_process(t,x,dim,M,extr_dim,type, 20, 20, 'classic',7,True, False)
+clusters, D, P = extreme_event_identification_process(t,x,dim,M,extr_dim,type, 20, 20, 'classic',7,True, False)
 plt.show()
-
-# plt.figure()
-# plt.subplot(3,1,1)
-# plt.plot(t, x[:,0])
-# # add dashed red line for cluster change
-# for i in range(len(tess_ind_cluster)-1):
-#     if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
-#         loc_col = palette[tess_ind_cluster[i]]
-#         plt.axvline(x=(t[i]+t[i+1])/2, color = loc_col, linestyle = '--')
-#         plt.text(t[i], 3, str(tess_ind_cluster[i]), rotation=90)  # numbers of clusters
-# plt.ylabel("$x$")
-# plt.xlabel("t")
-# plt.subplot(3,1,2)
-# plt.plot(t, x[:,1])
-# # for i in range(len(tess_ind_cluster)-1):
-# #     if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
-# #         plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
-# plt.ylabel("$y$")
-# plt.xlabel("t")
-# plt.subplot(3,1,3)
-# plt.plot(t, x[:,2])
-# # for i in range(len(tess_ind_cluster)-1):
-# #     if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:
-# #         plt.axvline(x=(t[i]+t[i+1])/2, color = 'r', linestyle = '--')
-# plt.ylabel("$z$")
-# plt.xlabel("t")

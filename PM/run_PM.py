@@ -48,5 +48,5 @@ M = 20
 plotting = True
 min_clusters=30
 max_it=10
-extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
+clusters, D, P = extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
 plt.show()

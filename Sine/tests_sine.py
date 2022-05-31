@@ -54,7 +54,7 @@ type='sine'
 #
 # for rand_threshold in rand_threshold_array:
 #     t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
-#     extreme_event_identification_process(t, x, dim, M, extr_dim, type, min_clusters, max_it, 'classic', 2, plotting,
+#     clusters, D, P = extreme_event_identification_process(t, x, dim, M, extr_dim, type, min_clusters, max_it, 'classic', 2, plotting,
 #                                          False)
 #     plt.show()
 
@@ -80,7 +80,7 @@ type='sine'
 #
 # for nt_ex in nt_ex_array:
 #     t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
-#     extreme_event_identification_process(t, x, dim, M, extr_dim, type, min_clusters, max_it, 'classic', 2, plotting,
+#     clusters, D, P = extreme_event_identification_process(t, x, dim, M, extr_dim, type, min_clusters, max_it, 'classic', 2, plotting,
 #                                              False)
 #     plt.show()
 
@@ -106,7 +106,7 @@ type='sine'
 #
 # for rand_amplitude in rand_amplitude_array:
 #     t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
-#     extreme_event_identification_process(t, x, dim, M, extr_dim, type, min_clusters, max_it, 'classic', 2, plotting,
+#     clusters, D, P = extreme_event_identification_process(t, x, dim, M, extr_dim, type, min_clusters, max_it, 'classic', 2, plotting,
 #                                                  False)
 #     plt.show()
 
@@ -131,6 +131,6 @@ type='sine'
 #
 # for rand_amplitude in rand_amplitude_array:
 #     t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
-#     extreme_event_identification_process(t, x, dim, M, extr_dim, type, min_clusters, max_it, 'classic', 2, plotting,
+#     clusters, D, P = extreme_event_identification_process(t, x, dim, M, extr_dim, type, min_clusters, max_it, 'classic', 2, plotting,
 #                                                  False)
 #     plt.show()

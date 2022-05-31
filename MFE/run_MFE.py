@@ -1,8 +1,12 @@
 # script for calcuations for the Moehlis-Faisst-Eckhardt equations - 9 dimensional
 # Urszula Golyska 2022
 import h5py
+import matplotlib.pyplot as plt
+
 from my_func import *
 import numpy.linalg as linalg
+import time
+import numpy as np
 
 def MFE_get_param(alpha, beta, gamma, Re):
     """ Function for calculating the parameters of the MFE system
@@ -259,47 +263,85 @@ def MFE_read_DI(filename, dt=0.25):
 
 plt.close('all') # close all open figures
 
-#####BURST#########
-type='MFE_burst'
-filename = 'MFE_Re400_T10000.h5'
-t,u = MFE_read_Fourier(filename)
-
-x = MFE_to_burst(u)
-dim = 3
-extr_dim = [2]   # define burst as the extreme dimension
-
-# Tesselation
-M = 20
-
-plotting = True
-min_clusters=30
-max_it=10
-extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
-plt.show()
-
-# ####DISSIPATION#########
-# type='MFE_dissipation'
-# filename = 'MFE_Re600'
-# dt = 0.25
-# t,x = MFE_read_DI(filename, dt)
-# dim = 2
-# extr_dim = [0,1]    # define both dissipation and energy as the extreme dimensions
+# #####BURST#########
+# type='MFE_burst'
+# filename = 'MFE_Re400_T10000.h5'
+# t,u = MFE_read_Fourier(filename)
+#
+# x = MFE_to_burst(u)
+# dim = 3
+# extr_dim = [2]   # define burst as the extreme dimension
 #
 # # Tesselation
 # M = 20
 #
-# # plt.figure()
-# # plt.plot(t,x[:,0])
-# # plt.axhline(np.mean(x[:,0])+5*np.std(x[:,0]))
-# # plt.axhline(np.mean(x[:,0])+7*np.std(x[:,0]))
-# # plt.axhline(np.mean(x[:,0])+9*np.std(x[:,0]))
-# # plt.plot(t,x[:,1], 'r')
-# # plt.axhline(np.mean(x[:,1])+5*np.std(x[:,1]), color='red')
-# # plt.axhline(np.mean(x[:,1])+7*np.std(x[:,1]), color='red')
-# # plt.axhline(np.mean(x[:,1])+9*np.std(x[:,1]), color='red')
-#
 # plotting = True
 # min_clusters=30
 # max_it=10
-# extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
+# clusters,P = extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
 # plt.show()
+
+####DISSIPATION#########
+type='MFE_dissipation'
+filename = 'MFE_Re600'
+dt = 0.25
+t,x = MFE_read_DI(filename, dt)
+dim = 2
+extr_dim = [0,1]    # define both dissipation and energy as the extreme dimensions
+
+# Tesselation
+M = 20
+
+# plt.figure()
+# plt.plot(t,x[:,0])
+# plt.axhline(np.mean(x[:,0])+5*np.std(x[:,0]))
+# plt.axhline(np.mean(x[:,0])+7*np.std(x[:,0]))
+# plt.axhline(np.mean(x[:,0])+9*np.std(x[:,0]))
+# plt.plot(t,x[:,1], 'r')
+# plt.axhline(np.mean(x[:,1])+5*np.std(x[:,1]), color='red')
+# plt.axhline(np.mean(x[:,1])+7*np.std(x[:,1]), color='red')
+# plt.axhline(np.mean(x[:,1])+9*np.std(x[:,1]), color='red')
+
+plotting = False
+min_clusters=30 #20
+max_it=10
+
+t1 = time.time()
+clusters, D, P = extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
+elapsed = time.time() - t1
+print("Time of clustering/deflating: ", elapsed)
+for i in range(len(clusters)):  #print average times spend in extreme clusters
+    loc_cluster = clusters[i]
+    if loc_cluster.is_extreme:
+        print("Average time in extreme cluster ", loc_cluster.nr, " is: ", loc_cluster.avg_time, " s")
+
+# take (new) data series
+t_new,x_new = MFE_read_DI(filename, dt)     #let's pretend this is a new data series
+
+t2 = time.time()
+#tesselate the new data
+x_new_tess,temp= tesselate(x_new,M,[],7)    #tesselate function without extreme event id
+x_new_tess = tess_to_lexi(x_new_tess, M, dim)
+
+# cluster affiliation
+x_new_clusters = data_to_clusters(x_new_tess, D)
+
+elapsed = time.time() - t2
+print("Time of analyzing new data: ", elapsed)
+
+print("Extreme event at t= ")
+# show time series with extreme events (real-time)
+for i in np.arange(22000, len(t_new), 10, dtype=int) :
+    loc_clust = data_to_clusters(x_new_tess[i], D)
+
+    # probability of transitioning to extreme event (shortest path)    # minimum time to extreme event
+
+    if clusters[x_new_clusters[i]].is_extreme==True:
+        plt.scatter(t_new[i], x_new[i,0],color='red')
+    elif clusters[x_new_clusters[i]].is_precursor==True:
+        plt.scatter(t_new[i], x_new[i,0],color='green')
+    else:
+        plt.scatter(t_new[i], x_new[i, 0],color='blue')
+    plt.xlim([t_new[i-90],t_new[i+20]])
+    plt.pause(0.00001)
+plt.show()

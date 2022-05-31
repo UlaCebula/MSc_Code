@@ -9,16 +9,43 @@ from modularity_maximization import spectralopt
 import matplotlib.pyplot as plt
 
 class cluster(object):
-    def __init__(self, nr, nodes,is_extreme, clusters_to, clusters_from, center_coord,center_coord_tess):
+    def __init__(self, nr, nodes, center_coord,center_coord_tess,avg_time, P, extr_clusters, from_clusters):
         self.nr = nr    # number of cluster
         self.nodes = nodes  #hypercubes - id in tesselated space
+
+        is_extreme = False
+        is_precursor = False
+        if nr in extr_clusters:
+            is_extreme=True
+        if nr in from_clusters:
+            is_precursor=True
+
         self.is_extreme = is_extreme
+        self.is_precursor = is_precursor
+
+        clusters_to = P.row[P.col==nr]   # clusters to which we can go from this one
+        clusters_from = P.col[P.row==nr]     # clusters from which we can get to this one
+
         self.transition_to = clusters_to
         self.transition_from = clusters_from
 
         # definition of the boundaries - weird shape
         self.center = center_coord
         self.center_tess = center_coord_tess
+
+        # average time send in cluster
+        self.avg_time = avg_time
+
+        max_prob = 0
+        for extr_cluster in extr_clusters:
+            if nr in P.col[P.row==extr_cluster]: #reverse probability matrix - if our cluster transitions directly to extr_cluster
+                temp = P.data[P.col[P.row==extr_cluster]]
+                loc_prob = temp[P.col[P.row==extr_cluster]==nr]
+                # loc_prob = loc_prob/ # DIVIDE BY SUM OF ROW!!
+                if loc_prob>max_prob:
+                    max_prob = loc_prob
+
+        self.prob_to_extreme = max_prob
 
 def tesselate(x,N,ex_dim,nr_dev=7):
     """ Tesselate data points x into space defined by N spaces in each direction
@@ -785,14 +812,17 @@ def plot_time_series(x,t, type):
         fig.suptitle("Dynamic behavior of the MFE flow")
         plt.subplot(3,1,1)
         plt.plot(t,x[:,0])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("Roll & streak")
         plt.xlabel("t")
         plt.subplot(3,1,2)
         plt.plot(t,x[:,1])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("Mean shear")
         plt.xlabel("t")
         plt.subplot(3,1,3)
         plt.plot(t,x[:,2])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("Burst")
         plt.xlabel("t")
 
@@ -801,10 +831,12 @@ def plot_time_series(x,t, type):
         fig.suptitle("Dynamic behavior of the MFE flow")
         plt.subplot(2, 1, 1)
         plt.plot(t, x[:, 0])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("D")
         plt.xlabel("t")
         plt.subplot(2, 1, 2)
         plt.plot(t, x[:, 1])
+        plt.xlim([t[0], t[-1]])
         plt.ylabel("I")
         plt.xlabel("t")
 
@@ -978,6 +1010,26 @@ def plot_time_series_extr_iden(y,t, tess_ind_cluster, from_cluster, extr_cluster
     plt.xlabel("t")
     return 1
 
+def avg_time_in_cluster(cluster_id,tess_ind_cluster,t):
+    # find all instances of cluster
+    ind = np.where(tess_ind_cluster==cluster_id) #returns index
+    ind=ind[0]
+
+    nr_cycles = 1
+    t_cluster=[]
+
+    t_start= t[ind[0]]
+    for i in range(len(ind)-1):
+        if ind[i+1]!=ind[i]+1:  # if the next time is not also there
+            t_cluster.append(t[ind[i]]-t_start)     # time spend in cluster during cycle
+            nr_cycles+=1
+            t_start = t[ind[i+1]]
+    # include last point
+    t_cluster.append(t[ind[-1]] - t_start)
+    avg_time = np.mean(t_cluster)
+
+    return avg_time
+
 def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, prob_type='classic',nr_dev=7,plotting=True, first_refined=False):
     """Big loop with calculation for the MFE system enclosed
 
@@ -997,7 +1049,6 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
 
     if plotting:
         plot_time_series(x,t,type)
-        plt.show()
         plot_phase_space(x,type)
         plot_tesselated_space(tess_ind, type)
 
@@ -1058,8 +1109,14 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
     coord_clust_centers, coord_clust_centers_tess = cluster_centers(x,tess_ind, tess_ind_cluster, D_nodes_in_clusters,dim)
 
     # identify extreme clusters and those transitioning to them
-    extr_cluster, from_cluster = extr_iden(extr_trans, D_nodes_in_clusters, P_old)
-    print('From cluster: ', from_cluster, 'To extreme cluster: ', extr_cluster)
+    extr_clusters, from_clusters = extr_iden(extr_trans, D_nodes_in_clusters, P_old)
+    print('From cluster: ', from_clusters, 'To extreme cluster: ', extr_clusters)
+
+    # DIVIDE P BY SUM OF ROW!!
+    for i in range(P_old.shape[0]): # for all unique rows of the deflated probability matrix
+        denom = np.sum(D_nodes_in_clusters,axis=0)
+        denom = denom[0,i]  # sum of nodes in cluster - we should divide by this
+        P_old.data[P_old.row == i] = P_old.data[P_old.row == i]/denom
 
     if plotting:
         # Plot time series with clusters
@@ -1071,7 +1128,7 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
             plot_time_series_clustered(x[:, 4], t, tess_ind_cluster, palette, type)
 
         # Visualize phase space trajectory with clusters
-        plot_phase_space_clustered(x, type, D_nodes_in_clusters, tess_ind_cluster, coord_clust_centers, extr_cluster,nr_dev, palette)
+        plot_phase_space_clustered(x, type, D_nodes_in_clusters, tess_ind_cluster, coord_clust_centers, extr_clusters,nr_dev, palette)
 
         # Plot time series with extreme event identification
         # if type == 'burst':
@@ -1080,7 +1137,7 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
         #     plot_time_series_extr_iden(x[:,0], t, tess_ind_cluster, from_cluster, extr_cluster, type)
 
         #plot tesselated phase space with clusters
-        plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_ind_cluster, coord_clust_centers_tess, extr_cluster, palette)
+        plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_ind_cluster, coord_clust_centers_tess, extr_clusters, palette)
 
         # Visualize probability matrix
         plot_prob_matrix(P_old.toarray())
@@ -1091,18 +1148,16 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
     # define individual properties of clusters:
     for i in range(D_nodes_in_clusters.shape[1]):   # loop through all clusters
         nodes = D_nodes_in_clusters.row[D_nodes_in_clusters.col==i]
-        is_extreme = False
-        if i in extr_cluster:
-            is_extreme=True
-        clusters_to = P_old.row[P_old.col==i]   # clusters to which we can go from this one
-        clusters_from = P_old.col[P_old.row==i]     # clusters from which we can get to this one
 
         center_coord=coord_clust_centers[i,:]
         center_coord_tess=coord_clust_centers_tess[i,:]
 
-        clusters.append(cluster(i, nodes, is_extreme, clusters_to, clusters_from, center_coord, center_coord_tess))
+        # average time spend in cluster
+        avg_time = avg_time_in_cluster(i,tess_ind_cluster,t)
 
-    for obj in clusters:
-        print(obj.nr, obj.nodes, obj.center, obj.is_extreme)
+        clusters.append(cluster(i, nodes, center_coord, center_coord_tess, avg_time, P_old, extr_clusters, from_clusters))
 
-    return 1
+    # for obj in clusters:
+    #     print(obj.nr, obj.nodes, obj.center, obj.is_extreme)
+
+    return clusters, D_nodes_in_clusters, P_old      # returns list of clusters (class:cluster), matrix of cluster affiliation and deflated probability matrix (sparse)
