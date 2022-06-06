@@ -8,6 +8,72 @@ import numpy.linalg as linalg
 import time
 import numpy as np
 
+def find_extr_paths_loop(P,local_path, cluster_from, ready_paths):
+    next_clusters = P.col[P.row == cluster_from]
+    next_clusters = np.delete(next_clusters, np.where(next_clusters==cluster_from))  # exclude looping inside oneself
+
+    for next_cluster in next_clusters:  # look at all paths
+        loc_local_path = local_path # reset
+        if next_cluster not in loc_local_path:
+            loc_local_path.append(next_cluster)  # append and go deeper
+            loc_local_path = find_extr_paths_loop(P, loc_local_path, next_cluster,ready_paths)
+        # we have made a full circle
+        #     ready_paths.append(loc_local_path)
+        # ready_paths = np.append(ready_paths, [loc_local_path])
+        else:
+            # ready_paths = [ready_paths,tuple(loc_local_path)]
+            if tuple(loc_local_path) not in ready_paths:
+                ready_paths.append(tuple(loc_local_path))
+    return ready_paths
+
+def find_extr_paths(extr_clusters,P):
+
+    final_paths =[]
+    for extr_cluster in extr_clusters:
+
+        clusters_from = P.col[P.row==extr_cluster]
+        clusters_from = np.delete(clusters_from,np.where(clusters_from==extr_cluster))   # exclude looping inside oneself
+
+        for cluster_from in clusters_from:  # first one
+            local_path = [extr_cluster, cluster_from]  # start/restart path
+            ready_paths = []
+
+            ready_paths = find_extr_paths_loop(P, local_path, cluster_from, ready_paths)       # we don't have to add the if statement before this one because it's the first try and we excluded it already
+            final_paths = np.append(final_paths, ready_paths)
+    return final_paths
+
+def prob_to_extreme(cluster_nr,paths, T, P, clusters):
+    prob = 0
+    time = T
+    if clusters[cluster_nr].is_extreme ==2: # extreme cluster
+        prob = 1
+        time = 0
+    else:
+        for i in range(len(paths)):     # for all paths
+            loc_prob = 1
+            loc_time = 0
+            if cluster_nr in paths[i]:     # find path with our cluster
+                #take into account only part of path to our cluster
+                loc_path = np.asarray(paths[i])
+                loc_end = np.where(loc_path==cluster_nr)[0]
+                loc_end = loc_end[0]
+                loc_path = loc_path[0:loc_end+1]
+
+                for j in range(len(loc_path)):
+                    if j!=len(loc_path)-1:
+                        temp = P.data[P.row[P.col == loc_path[j]]]     # row is from, col is to
+                        temp = temp[P.row[P.col == loc_path[j]]==loc_path[j+1]]
+                        loc_prob = loc_prob*temp
+
+                    if j!=0:   # exclude first and last path
+                        loc_time += clusters[loc_path[j]].avg_time
+
+                if loc_prob > prob:
+                    prob = loc_prob
+                if loc_time < time:
+                    time = loc_time
+    return prob,time
+
 def MFE_get_param(alpha, beta, gamma, Re):
     """ Function for calculating the parameters of the MFE system
 
@@ -310,10 +376,24 @@ t1 = time.time()
 clusters, D, P = extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
 elapsed = time.time() - t1
 print("Time of clustering/deflating: ", elapsed)
+extr_clusters = np.empty(0, int)
 for i in range(len(clusters)):  #print average times spend in extreme clusters
     loc_cluster = clusters[i]
-    if loc_cluster.is_extreme:
-        print("Average time in extreme cluster ", loc_cluster.nr, " is: ", loc_cluster.avg_time, " s")
+    if loc_cluster.is_extreme==2:
+        extr_clusters = np.append(extr_clusters, i)
+    # print("Average time in cluster ", loc_cluster.nr, " is: ", loc_cluster.avg_time, " s")
+
+
+paths = find_extr_paths(extr_clusters,P)
+
+min_prob = np.zeros((len(clusters),1))
+min_time = np.zeros((len(clusters),1))
+
+for i in range(len(clusters)):  # for each cluster
+    # prob to extreme
+    loc_prob,loc_time = prob_to_extreme(i, paths, t[-1], P, clusters)
+    min_prob[i] = loc_prob
+    min_time[i] = loc_time
 
 # take (new) data series
 t_new,x_new = MFE_read_DI(filename, dt)     #let's pretend this is a new data series
@@ -329,19 +409,55 @@ x_new_clusters = data_to_clusters(x_new_tess, D)
 elapsed = time.time() - t2
 print("Time of analyzing new data: ", elapsed)
 
-print("Extreme event at t= ")
+# print("Extreme event at t= ")
 # show time series with extreme events (real-time)
-for i in np.arange(22000, len(t_new), 10, dtype=int) :
-    loc_clust = data_to_clusters(x_new_tess[i], D)
 
-    # probability of transitioning to extreme event (shortest path)    # minimum time to extreme event
+fig, axs = plt.subplots(2)
+fig.suptitle("Real-time predictions")
 
-    if clusters[x_new_clusters[i]].is_extreme==True:
-        plt.scatter(t_new[i], x_new[i,0],color='red')
-    elif clusters[x_new_clusters[i]].is_precursor==True:
-        plt.scatter(t_new[i], x_new[i,0],color='green')
-    else:
-        plt.scatter(t_new[i], x_new[i, 0],color='blue')
-    plt.xlim([t_new[i-90],t_new[i+20]])
-    plt.pause(0.00001)
+axs[0].set_xlim([t_new[0], t_new[-1]])
+axs[0].set_xlabel("t")
+axs[0].set_ylabel("D")
+
+# axs[1].set_xlim([t_new[0], t_new[-1]])
+axs[1].set_xlabel("t")
+axs[1].set_ylabel("extreme")
+axs[1].set_ylim([-0.5, 2.5])
+
+n_skip=10
+spacing = np.arange(0, len(t_new), n_skip, dtype=int)
+for i in range(len(spacing)):
+    if i!=0:
+        loc_clust = data_to_clusters(x_new_tess[spacing[i]], D)
+        axs[0].plot([t_new[spacing[i - 1]], t_new[spacing[i]]], [x_new[spacing[i - 1], 0], x_new[spacing[1], 0]], color='blue')
+
+        temp2=clusters[x_new_clusters[spacing[i]]].is_extreme
+        temp = clusters[x_new_clusters[spacing[i-1]]].is_extreme
+        # probability of transitioning to extreme event (shortest path)    # minimum time to extreme event
+        if temp2==2:
+            axs[1].plot([t_new[spacing[i-1]], t_new[spacing[i]]], [temp, temp2],color='red')
+
+        elif temp2==1:
+            axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
+                        [temp,
+                         temp2], color='orange')
+        else:
+            if temp==2:  # if previous was extreme
+                axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
+                            [temp, temp2], color='red')
+            elif temp==1:   # if previous was precursor
+                axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
+                            [temp, temp2], color='orange')
+            else:
+                axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
+                        [temp, temp2], color='green')
+
+        # text = fig.text(0.05, 0.03, str(clusters[x_new_clusters[spacing[i]]].prob_to_extreme))
+        text = fig.text(0.05, 0.01, 'Probability: ' + str(min_prob[clusters[x_new_clusters[spacing[i]]].nr]))
+        text2 = fig.text(0.05, 0.05, 'Time: ' + str(min_time[clusters[x_new_clusters[spacing[i]]].nr]))
+        # axs[1].text(0,0,)
+        axs[1].set_xlim([t_new[spacing[i-1]]-n_skip*10, t_new[spacing[i]]+ n_skip*10])
+        plt.pause(0.001)
+        text.remove()
+        text2.remove()
 plt.show()

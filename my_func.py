@@ -8,20 +8,77 @@ import graphviz as gv
 from modularity_maximization import spectralopt
 import matplotlib.pyplot as plt
 
+
+def find_extreme_prob(loc_cluster, loc_prob, max_prob, extr_clusters, P, count,path_to_extreme):  # find max prob of transitioning to extreme event (the path)
+    for trans_cluster in P.row[
+        P.col == loc_cluster]:  # loop through possible transitions from our local clusters (excluding itself)
+        temp = P.data[P.row[P.col == loc_cluster]]
+        if trans_cluster != loc_cluster:  # exclude looping within a cluster
+            if loc_prob == 0:  # for first loop
+                loc_prob = temp[P.row[P.col == loc_cluster] == trans_cluster]
+
+            # check if this one transitions to an extreme event
+            for extr_cluster in extr_clusters:
+                if trans_cluster in P.col[P.row == extr_cluster]:  # if next transition is extreme event
+                    temp = P.data[P.col[P.row == extr_cluster]]
+                    loc_prob = loc_prob * temp[P.col[P.row == extr_cluster] == trans_cluster]
+                    path_temp = trans_cluster
+                else:
+                    if count>10:   # we can assume there is no way to the extreme event or the probability is super low
+                        path_temp=[]
+                        break
+                    else:
+                        count+=1
+                        loc_prob, path_temp = find_extreme_prob(trans_cluster, loc_prob, max_prob, extr_clusters, P, count, path_to_extreme)  # if next step is not extreme event - dig deeper!
+                if loc_prob > max_prob:
+                    max_prob = loc_prob
+                    path_to_extreme.append(path_temp)
+    return max_prob,path_to_extreme
+
+def find_extr_paths_loop(P,local_path, cluster_from, ready_paths):
+    next_clusters = P.col[P.row == cluster_from]
+    np.delete(next_clusters, np.where(next_clusters==cluster_from))  # exclude looping inside oneself
+
+    for next_cluster in next_clusters:  # look at all paths
+        loc_local_path = local_path # reset
+        if next_cluster not in loc_local_path:
+            loc_local_path.append(next_cluster)  # append and go deeper
+            ready_path = find_extr_paths_loop(P, loc_local_path, next_cluster,ready_paths)
+        # we have made a full circle
+        # ready_paths = np.append(ready_paths, [loc_local_path])
+            ready_paths = np.append(ready_paths, [ready_path])
+
+    return ready_paths
+
+def find_extr_paths(extr_clusters,P):
+
+    final_paths =[]
+    for extr_cluster in extr_clusters:
+
+        clusters_from = P.col[P.row==extr_cluster]
+        clusters_from = np.delete(clusters_from,np.where(clusters_from==extr_cluster))   # exclude looping inside oneself
+
+        for cluster_from in clusters_from:  # first one
+            local_path = [extr_cluster, cluster_from]  # start/restart path
+            ready_paths = []
+
+            ready_paths = find_extr_paths_loop(P, local_path, cluster_from, ready_paths)       # we don't have to add the if statement before this one because it's the first try and we excluded it already
+            final_paths = np.append(final_paths, ready_paths)
+    return final_paths
+
+
 class cluster(object):
     def __init__(self, nr, nodes, center_coord,center_coord_tess,avg_time, P, extr_clusters, from_clusters):
         self.nr = nr    # number of cluster
         self.nodes = nodes  #hypercubes - id in tesselated space
 
-        is_extreme = False
-        is_precursor = False
+        is_extreme = 0  # not extreme event or precursor
         if nr in extr_clusters:
-            is_extreme=True
-        if nr in from_clusters:
-            is_precursor=True
+            is_extreme=2    # extreme event
+        elif nr in from_clusters:
+            is_extreme=1  # precursor
 
         self.is_extreme = is_extreme
-        self.is_precursor = is_precursor
 
         clusters_to = P.row[P.col==nr]   # clusters to which we can go from this one
         clusters_from = P.col[P.row==nr]     # clusters from which we can get to this one
@@ -36,16 +93,18 @@ class cluster(object):
         # average time send in cluster
         self.avg_time = avg_time
 
-        max_prob = 0
-        for extr_cluster in extr_clusters:
-            if nr in P.col[P.row==extr_cluster]: #reverse probability matrix - if our cluster transitions directly to extr_cluster
-                temp = P.data[P.col[P.row==extr_cluster]]
-                loc_prob = temp[P.col[P.row==extr_cluster]==nr]
-                # loc_prob = loc_prob/ # DIVIDE BY SUM OF ROW!!
-                if loc_prob>max_prob:
-                    max_prob = loc_prob
+        max_prob=0
+        loc_prob=0
+        path_to_extreme=[]
+        if self.is_extreme!=2:  # if not extreme
+            prob_to_extreme, path_to_extreme = find_extreme_prob(nr, loc_prob, max_prob, extr_clusters, P, 0,path_to_extreme)
+        else:
+            prob_to_extreme = 1 # cheating
 
-        self.prob_to_extreme = max_prob
+        self.prob_to_extreme = prob_to_extreme
+        self.path_to_extreme = path_to_extreme
+
+        # average time to extreme event - cheating a bit
 
 def tesselate(x,N,ex_dim,nr_dev=7):
     """ Tesselate data points x into space defined by N spaces in each direction
@@ -1144,6 +1203,9 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
 
     # list of class type objects
     clusters = []
+
+    # ready paths
+    ready_paths = find_extr_paths(extr_clusters, P_old)
 
     # define individual properties of clusters:
     for i in range(D_nodes_in_clusters.shape[1]):   # loop through all clusters
