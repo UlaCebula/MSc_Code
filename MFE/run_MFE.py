@@ -8,72 +8,6 @@ import numpy.linalg as linalg
 import time
 import numpy as np
 
-def find_extr_paths_loop(P,local_path, cluster_from, ready_paths):
-    next_clusters = P.col[P.row == cluster_from]
-    next_clusters = np.delete(next_clusters, np.where(next_clusters==cluster_from))  # exclude looping inside oneself
-
-    for next_cluster in next_clusters:  # look at all paths
-        loc_local_path = local_path # reset
-        if next_cluster not in loc_local_path:
-            loc_local_path.append(next_cluster)  # append and go deeper
-            loc_local_path = find_extr_paths_loop(P, loc_local_path, next_cluster,ready_paths)
-        # we have made a full circle
-        #     ready_paths.append(loc_local_path)
-        # ready_paths = np.append(ready_paths, [loc_local_path])
-        else:
-            # ready_paths = [ready_paths,tuple(loc_local_path)]
-            if tuple(loc_local_path) not in ready_paths:
-                ready_paths.append(tuple(loc_local_path))
-    return ready_paths
-
-def find_extr_paths(extr_clusters,P):
-
-    final_paths =[]
-    for extr_cluster in extr_clusters:
-
-        clusters_from = P.col[P.row==extr_cluster]
-        clusters_from = np.delete(clusters_from,np.where(clusters_from==extr_cluster))   # exclude looping inside oneself
-
-        for cluster_from in clusters_from:  # first one
-            local_path = [extr_cluster, cluster_from]  # start/restart path
-            ready_paths = []
-
-            ready_paths = find_extr_paths_loop(P, local_path, cluster_from, ready_paths)       # we don't have to add the if statement before this one because it's the first try and we excluded it already
-            final_paths = np.append(final_paths, ready_paths)
-    return final_paths
-
-def prob_to_extreme(cluster_nr,paths, T, P, clusters):
-    prob = 0
-    time = T
-    if clusters[cluster_nr].is_extreme ==2: # extreme cluster
-        prob = 1
-        time = 0
-    else:
-        for i in range(len(paths)):     # for all paths
-            loc_prob = 1
-            loc_time = 0
-            if cluster_nr in paths[i]:     # find path with our cluster
-                #take into account only part of path to our cluster
-                loc_path = np.asarray(paths[i])
-                loc_end = np.where(loc_path==cluster_nr)[0]
-                loc_end = loc_end[0]
-                loc_path = loc_path[0:loc_end+1]
-
-                for j in range(len(loc_path)):
-                    if j!=len(loc_path)-1:
-                        temp = P.data[P.row[P.col == loc_path[j]]]     # row is from, col is to
-                        temp = temp[P.row[P.col == loc_path[j]]==loc_path[j+1]]
-                        loc_prob = loc_prob*temp
-
-                    if j!=0:   # exclude first and last path
-                        loc_time += clusters[loc_path[j]].avg_time
-
-                if loc_prob > prob:
-                    prob = loc_prob
-                if loc_time < time:
-                    time = loc_time
-    return prob,time
-
 def MFE_get_param(alpha, beta, gamma, Re):
     """ Function for calculating the parameters of the MFE system
 
@@ -129,10 +63,10 @@ def MFE_get_param(alpha, beta, gamma, Re):
 def MFE_RHS(u, zeta, xi1, xi2, xi3, xi4, xi5, xi6, xi7, xi8, xi9):
     """Function for calculating the right hand side of the MFE system
 
-    :param u:
-    :param zeta:
-    :param xi1-xi9:
-    :return:
+    :param u: matrix of Fourier coefficients (of size Nt*9)
+    :param zeta: system parameters
+    :param xi1-xi9: full system coefficients
+    :return: returns right hand side of the MFE system
     """
     RHS = - np.matmul(u, zeta)
 
