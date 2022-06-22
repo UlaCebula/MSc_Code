@@ -7,6 +7,7 @@ import networkx as nx
 import graphviz as gv
 from modularity_maximization import spectralopt
 import matplotlib.pyplot as plt
+import numpy.linalg
 
 def find_extr_paths_loop(P,local_path, cluster_from, ready_paths):
     ''' Inner function for finding loops leading to given extreme cluster
@@ -64,9 +65,11 @@ def prob_to_extreme(cluster_nr,paths, T, P, clusters):
     '''
     prob = 0
     time = T
+    length = np.size(P)
     if clusters[cluster_nr].is_extreme ==2: # extreme cluster
         prob = 1
         time = 0
+        length = 0
     else:
         for i in range(len(paths)):     # for all paths
             loc_prob = 1
@@ -91,12 +94,14 @@ def prob_to_extreme(cluster_nr,paths, T, P, clusters):
                     prob = loc_prob
                 if loc_time < time:
                     time = loc_time
-    return prob,time
+                if len(loc_path)-1<length:
+                    length = len(loc_path)-1
+    return prob,time,length
 
 class cluster(object):
     '''Object cluster, defined by it's number, the nodes that belong to it, it's center, the clusters to and from which
         it transitions'''
-    def __init__(self, nr, nodes, center_coord,center_coord_tess,avg_time, P, extr_clusters, from_clusters):
+    def __init__(self, nr, nodes, center_coord,center_coord_tess,avg_time, nr_instances, P, extr_clusters, from_clusters):
         self.nr = nr    # number of cluster
         self.nodes = nodes  #hypercubes - id in tesselated space
 
@@ -120,6 +125,53 @@ class cluster(object):
 
         # average time send in cluster
         self.avg_time = avg_time
+
+        # number of times the cluster loop in given time series
+        self.nr_instances = nr_instances
+
+def plot_cluster_statistics(clusters, min_prob, min_time, length):
+    numbers = np.arange(len(clusters))
+    # show cluster statistics
+    plt.figure()
+    plt.bar(numbers, min_prob)
+    plt.grid('minor')
+    plt.xlabel("Cluster")
+    plt.ylabel("Probability to extreme")
+
+    plt.figure()
+    plt.bar(numbers, min_time)
+    plt.grid('minor')
+    plt.xlabel("Cluster")
+    plt.ylabel("Time to extreme")
+
+    plt.figure()
+    plt.bar(numbers, length)
+    plt.grid('minor')
+    plt.xlabel("Cluster")
+    plt.ylabel("Length of shortest path to extreme")
+
+    # average time in cluster
+    plt.figure()
+    plt.bar(numbers, [cluster.avg_time for cluster in clusters])
+    plt.grid('minor')
+    plt.xlabel("Cluster")
+    plt.ylabel("Average time spend in cluster")
+
+    # cluster size (in nodes)
+    plt.figure()
+    plt.bar(numbers, [cluster.nodes.size for cluster in clusters])
+    plt.grid('minor')
+    plt.xlabel("Cluster")
+    plt.ylabel("# nodes in cluster")
+
+    # number of instances in whole data frame
+    plt.figure()
+    plt.bar(numbers, [cluster.nr_instances for cluster in clusters])
+    plt.grid('minor')
+    plt.xlabel("Cluster")
+    plt.ylabel("# instances in time series")
+
+    return 1
 
 def tesselate(x,N,ex_dim,nr_dev=7):
     """ Tesselate data points x into space defined by N spaces in each direction
@@ -507,16 +559,23 @@ def clustering_loop_sparse(P_community_old, P_graph_old, P_old, D_nodes_in_clust
     D_nodes_in_clusters = sp.coo_matrix(D_nodes_in_clusters*D_new)
     return P_community_old, P_graph_old, P_old, D_nodes_in_clusters
 
-def data_to_clusters(tess_ind_trans, D_nodes_in_clusters):
+def data_to_clusters(tess_ind_trans, D_nodes_in_clusters, x=[], *clusters):
     '''Translates datapoints to cluster number affiliation
 
     :param tess_ind_trans: datapoint time series already translated to tesselated lexicographic ordering
     :param D_nodes_in_clusters: matrix of affiliation of all the possible points to current community ordering
+    :param x:
+    :param clusters:
     :return: returns vector of the time series with their cluster affiliation
     '''
     tess_ind_cluster = np.zeros_like(tess_ind_trans)
     for point in np.unique(tess_ind_trans):     # take all unique points in tesselated space
-        cluster_aff = int(D_nodes_in_clusters.col[D_nodes_in_clusters.row==point])  # find affiliated cluster
+        if D_nodes_in_clusters.col[D_nodes_in_clusters.row==point].size>0:  # if we already have this point
+            cluster_aff = int(D_nodes_in_clusters.col[D_nodes_in_clusters.row==point])  # find affiliated cluster
+        else:   # this point has not been encountered yet
+            #find cluster with closest center (physical, not in tesselated space)
+            y = x[np.where(tess_ind_trans==point),:]    # the point in physical space
+            cluster_aff = find_closest_center(y[0,0,:],clusters[0])    # take one (first of these) point
         tess_ind_cluster[tess_ind_trans==point] = cluster_aff
     return tess_ind_cluster
 
@@ -553,7 +612,7 @@ def plot_phase_space(x, type):
     """Function for plotting the MFE data in phase space
 
     :param x: data matrix (look at to_burst or read_DI)
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM")
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
     :return: none, plots data x in equivalent phase space
     """
     if type=='MFE_burst':
@@ -565,10 +624,12 @@ def plot_phase_space(x, type):
         ax.set_zlabel("Burst")
         ax.set_title("Self-sustaining process")
 
-    if type=='MFE_dissipation':
+    if type=='MFE_dissipation' or type=='kolmogorov':
         plt.figure()
         plt.plot(x[:,1], x[:,0])
         plt.title("Dissipation vs energy")
+        plt.grid('minor', 'both')
+        plt.minorticks_on()
         plt.ylabel("D")
         plt.xlabel("I")
 
@@ -611,7 +672,7 @@ def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
 
     :param tess_ind: matrix which includes the indices of the box taken by the data points in consequent time steps, can
     be obtained from the tesselate(x,N) function
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM")
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
     :param least_prob_tess: vector of least probable events (optional)
     :return: none, plots data x in equivalent tesselated phase space
     """
@@ -622,7 +683,7 @@ def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
         ax.set_ylabel("Mean shear")
         ax.set_zlabel("Burst")
 
-    if type=='MFE_dissipation':
+    if type=='MFE_dissipation' or type=='kolmogorov':
         plt.figure(figsize=(7, 7))
         plt.scatter(tess_ind[:,1], tess_ind[:,0], s=200, marker='s', facecolors = 'None', edgecolor = 'blue') #I should relate somehow s to N and the fig size
         if np.size(least_prob_tess)>1:
@@ -677,7 +738,7 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
     """Function for plotting phase space with cluster affiliation
 
     :param x: data matrix
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM")
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
     :param D_nodes_in_clusters: matrix of affiliation of point to the community clusters
     :param tess_ind_cluster: vector of the time series with their cluster affiliation
     :param coord_centers: cluster centers in phase space
@@ -700,7 +761,7 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         ax.set_zlabel("Burst")
         ax.set_title("Self-sustaining process")
 
-    if type=='MFE_dissipation':
+    if type=='MFE_dissipation' or type=='kolmogorov':
         plt.figure(figsize=(7, 7))
         plt.axhline(y=np.mean(x[:,0])+nr_dev*np.std(x[:, 0]), color='r', linestyle='--') # plot horizontal cutoff
         plt.axvline(x=np.mean(x[:, 1]) + nr_dev*np.std(x[:, 1]), color='r', linestyle='--')  # plot horizontal cutoff
@@ -781,7 +842,7 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
 
     :param tess_ind: matrix which includes the indices of the box taken by the data points in consequent time steps, can
     be obtained from the tesselate(x,N) function
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM")
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; 'kolmogorov')
     :param D_nodes_in_clusters: matrix of affiliation of point to the community clusters
     :param tess_ind_cluster: vector of the time series with their cluster affiliation
     :param coord_centers_tess: cluster centers in tesselated phase space
@@ -789,7 +850,7 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
     :param palette: color palette decoding a unique color code for each cluster
     :return: none, plots the tesselated phase space colored by cluster affiliation
     """
-    if type=='MFE_dissipation':
+    if type=='MFE_dissipation' or type=='kolmogorov':
         # take only unique spots in tesselated space
         x,indices=np.unique(tess_ind,return_index=True,axis=0)
 
@@ -877,7 +938,7 @@ def plot_time_series(x,t, type):
 
     :param x: data matrix
     :param t: time vector
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM")
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
     :return: none, plots time series of data (without plt.show())
     """
     if type=='MFE_burst':
@@ -899,9 +960,12 @@ def plot_time_series(x,t, type):
         plt.ylabel("Burst")
         plt.xlabel("t")
 
-    if type=='MFE_dissipation':
+    if type=='MFE_dissipation' or type=='kolmogorov':
         fig, axs = plt.subplots(2)
-        fig.suptitle("Dynamic behavior of the MFE flow")
+        if type=='MFE_dissipation':
+            fig.suptitle("Dynamic behavior of the MFE flow")
+        if type=='kolmogorov':
+            fig.suptitle("Dynamic behavior of the Kolmogorov flow")
         plt.subplot(2, 1, 1)
         plt.plot(t, x[:, 0])
         plt.xlim([t[0], t[-1]])
@@ -1024,7 +1088,7 @@ def plot_time_series_clustered(y,t, tess_ind_cluster, palette, type):
     :param t: time vector
     :param tess_ind_cluster: vector of the time series with their cluster affiliation
     :param palette: color palette decoding a unique color code for each cluster
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM")
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
     :return: none, plots time series with cluster affiliation
     """
     plt.figure()
@@ -1038,7 +1102,7 @@ def plot_time_series_clustered(y,t, tess_ind_cluster, palette, type):
     if type=='MFE_burst':
         plt.title("Burst component vs time")
         plt.ylabel("$b$")
-    if type=='MFE_dissipation':
+    if type=='MFE_dissipation' or type=='kolmogorov':
         plt.title("Dissipation vs time")
         plt.ylabel("$D$")
     if type=='sine':
@@ -1065,7 +1129,7 @@ def plot_time_series_extr_iden(y,t, tess_ind_cluster, from_cluster, extr_cluster
     :param tess_ind_cluster: vector of the time series with their cluster affiliation
     :param from_cluster: vector of cluster numbers which can transition to extreme event
     :param extr_clusters: vector of cluster numbers which contain extreme events
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM")
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
     :return: none, plots time series with extreme event (blue) and precursor (red) identification
     '''
     plt.figure()
@@ -1077,7 +1141,7 @@ def plot_time_series_extr_iden(y,t, tess_ind_cluster, from_cluster, extr_cluster
     if type=='MFE_burst':
         plt.title("Burst component vs time")
         plt.ylabel("$b$")
-    if type=='MFE_dissipation':
+    if type=='MFE_dissipation' or type=='kolmogorov':
         plt.title("Dissipation vs time")
         plt.ylabel("$D$")
     plt.xlabel("t")
@@ -1108,7 +1172,16 @@ def avg_time_in_cluster(cluster_id,tess_ind_cluster,t):
     t_cluster.append(t[ind[-1]] - t_start)
     avg_time = np.mean(t_cluster)
 
-    return avg_time
+    return avg_time, nr_cycles
+
+def find_closest_center(y,clusters):
+    min_dist = numpy.linalg.norm(y)
+    closest_cluster =-1
+    for cluster in clusters:
+        dist = numpy.linalg.norm(cluster.center-y)
+        if dist<min_dist:
+            closest_cluster=cluster.nr
+    return closest_cluster
 
 def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, prob_type='classic',nr_dev=7,plotting=True, first_refined=False):
     """Big loop with calculation for the different systems
@@ -1118,7 +1191,7 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
     :param dim: integer, number of dimensions of the system (2 for type=="dissipation" and 3 for type=="burst")
     :param M: number of tesselation discretisations per dimension
     :param extr_dim: dimension which amplitude will define the extreme event (0 for type=="dissipation" and 2 for type=="burst")
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM")
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
     :param min_clusters: minimum number of clusters which breaks the deflation loop
     :param max_it: maximum number of iterations which breaks the deflation loop
     :param prob_type: string defining the type of probability to be calculated, either "classic" (default) or "backwards"
@@ -1206,7 +1279,7 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
         # Plot time series with clusters
         if type=='MFE_burst':
             plot_time_series_clustered(x[:,2], t, tess_ind_cluster, palette, type)
-        if type=='MFE_dissipation' or type=='sine'or type=='LA' or type=='CDV':
+        if type=='MFE_dissipation' or type=='sine'or type=='LA' or type=='CDV' or type=='kolmogorov':
             plot_time_series_clustered(x[:,0], t, tess_ind_cluster, palette, type)
         if type == 'PM':
             plot_time_series_clustered(x[:, 4], t, tess_ind_cluster, palette, type)
@@ -1237,9 +1310,9 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
         center_coord_tess=coord_clust_centers_tess[i,:]
 
         # average time spend in cluster
-        avg_time = avg_time_in_cluster(i,tess_ind_cluster,t)
+        avg_time, nr_instances = avg_time_in_cluster(i,tess_ind_cluster,t)
 
-        clusters.append(cluster(i, nodes, center_coord, center_coord_tess, avg_time, P_old, extr_clusters, from_clusters))
+        clusters.append(cluster(i, nodes, center_coord, center_coord_tess, avg_time, nr_instances, P_old, extr_clusters, from_clusters))
 
     # for obj in clusters:
     #     print(obj.nr, obj.nodes, obj.center, obj.is_extreme)

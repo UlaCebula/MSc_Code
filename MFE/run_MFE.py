@@ -320,14 +320,19 @@ for i in range(len(clusters)):  #print average times spend in extreme clusters
 
 paths = find_extr_paths(extr_clusters,P)
 
-min_prob = np.zeros((len(clusters),1))
-min_time = np.zeros((len(clusters),1))
+min_prob = np.zeros((len(clusters)))
+min_time = np.zeros((len(clusters)))
+length = np.zeros((len(clusters)))
 
 for i in range(len(clusters)):  # for each cluster
     # prob to extreme
-    loc_prob,loc_time = prob_to_extreme(i, paths, t[-1], P, clusters)
+    loc_prob,loc_time,loc_length = prob_to_extreme(i, paths, t[-1], P, clusters)
     min_prob[i] = loc_prob
     min_time[i] = loc_time
+    length[i] = loc_length
+
+plot_cluster_statistics(clusters, min_prob, min_time, length)
+plt.show()
 
 # take (new) data series
 t_new,x_new = MFE_read_DI(filename, dt)     #let's pretend this is a new data series
@@ -356,9 +361,10 @@ axs[0].set_ylabel("D")
 # axs[1].set_xlim([t_new[0], t_new[-1]])
 axs[1].set_xlabel("t")
 axs[1].set_ylabel("extreme")
-axs[1].set_ylim([-0.5, 2.5])
+axs[1].set_ylim([-0.5, max(length)+0.5])
+axs[1].yaxis.grid(True,which='minor')
 
-n_skip=10
+n_skip=5
 spacing = np.arange(0, len(t_new), n_skip, dtype=int)
 for i in range(len(spacing)):
     if i!=0:
@@ -368,23 +374,27 @@ for i in range(len(spacing)):
         temp2=clusters[x_new_clusters[spacing[i]]].is_extreme
         temp = clusters[x_new_clusters[spacing[i-1]]].is_extreme
         # probability of transitioning to extreme event (shortest path)    # minimum time to extreme event
-        if temp2==2:
-            axs[1].plot([t_new[spacing[i-1]], t_new[spacing[i]]], [temp, temp2],color='red')
-
-        elif temp2==1:
-            axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
-                        [temp,
-                         temp2], color='orange')
-        else:
-            if temp==2:  # if previous was extreme
-                axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
-                            [temp, temp2], color='red')
-            elif temp==1:   # if previous was precursor
-                axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
-                            [temp, temp2], color='orange')
-            else:
-                axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
-                        [temp, temp2], color='green')
+        # if temp2==2:
+        #     axs[1].plot([t_new[spacing[i-1]], t_new[spacing[i]]], [temp, temp2],color='red')
+        #
+        # elif temp2==1:
+        #     axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
+        #                 [temp,
+        #                  temp2], color='orange')
+        # else:
+        #     if temp==2:  # if previous was extreme
+        #         axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
+        #                     [temp, temp2], color='red')
+        #     elif temp==1:   # if previous was precursor
+        #         axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
+        #                     [temp, temp2], color='orange')
+        #     else:
+        #         axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
+        #                 [temp, temp2], color='green')
+        temp2 = length[x_new_clusters[spacing[i]]]
+        temp = length[x_new_clusters[spacing[i - 1]]]
+        axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]], [temp, temp2], color='blue')
+        plt.grid('minor')
 
         # text = fig.text(0.05, 0.03, str(clusters[x_new_clusters[spacing[i]]].prob_to_extreme))
         text = fig.text(0.05, 0.01, 'Probability: ' + str(min_prob[clusters[x_new_clusters[spacing[i]]].nr]))
