@@ -40,4 +40,6 @@ M=20
 extr_dim = []   # dimension of extreme event, here none
 
 clusters, D, P = extreme_event_identification_process(t,x,dim,M,extr_dim,type, 20, 20, 'classic',7,True, False)
+
+plot_cluster_statistics(clusters) # because no extreme events
 plt.show()

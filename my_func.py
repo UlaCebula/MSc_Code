@@ -74,7 +74,7 @@ def prob_to_extreme(cluster_nr,paths, T, P, clusters):
         for i in range(len(paths)):     # for all paths
             loc_prob = 1
             loc_time = 0
-            if cluster_nr in paths[i]:     # find path with our cluster
+            if cluster_nr in paths[i] and type(paths[i])!=int:     # find path with our cluster
                 #take into account only part of path to our cluster
                 loc_path = np.asarray(paths[i])
                 loc_end = np.where(loc_path==cluster_nr)[0]
@@ -129,26 +129,27 @@ class cluster(object):
         # number of times the cluster loop in given time series
         self.nr_instances = nr_instances
 
-def plot_cluster_statistics(clusters, min_prob, min_time, length):
+def plot_cluster_statistics(clusters, min_prob=None, min_time=None, length=None):
     numbers = np.arange(len(clusters))
-    # show cluster statistics
-    plt.figure()
-    plt.bar(numbers, min_prob)
-    plt.grid('minor')
-    plt.xlabel("Cluster")
-    plt.ylabel("Probability to extreme")
+    if min_prob is not None:# if we have extreme events
+        # show cluster statistics
+        plt.figure()
+        plt.bar(numbers, min_prob)
+        plt.grid('minor')
+        plt.xlabel("Cluster")
+        plt.ylabel("Probability to extreme")
 
-    plt.figure()
-    plt.bar(numbers, min_time)
-    plt.grid('minor')
-    plt.xlabel("Cluster")
-    plt.ylabel("Time to extreme")
+        plt.figure()
+        plt.bar(numbers, min_time)
+        plt.grid('minor')
+        plt.xlabel("Cluster")
+        plt.ylabel("Time to extreme")
 
-    plt.figure()
-    plt.bar(numbers, length)
-    plt.grid('minor')
-    plt.xlabel("Cluster")
-    plt.ylabel("Length of shortest path to extreme")
+        plt.figure()
+        plt.bar(numbers, length)
+        plt.grid('minor')
+        plt.xlabel("Cluster")
+        plt.ylabel("Length of shortest path to extreme")
 
     # average time in cluster
     plt.figure()
@@ -387,7 +388,8 @@ def plot_graph(P_graph):
     """
     # Visualize graph
     plt.figure()
-    nx.draw_kamada_kawai(P_graph,with_labels=True)
+    nx.draw_kamada_kawai(P_graph,with_labels=False)
+    # nx.draw_kamada_kawai(P_graph,with_labels=True)
     return 1
 
 def to_graph_sparse(P):
@@ -767,7 +769,7 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         plt.axvline(x=np.mean(x[:, 1]) + nr_dev*np.std(x[:, 1]), color='r', linestyle='--')  # plot horizontal cutoff
         for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
             plt.scatter(x[tess_ind_cluster == i,1],
-                        x[tess_ind_cluster == i,0], c=palette[i,:])  # I should relate somehow s to N and the fig size
+                        x[tess_ind_cluster == i,0], color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
 
             if i in extr_clusters:     # if cluster is extreme - plot number in red
                 plt.text(coord_centers[i,1], coord_centers[i,0], str(i),color='r')  # numbers of clusters
@@ -784,7 +786,7 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         plt.axvline(x=np.mean(x[:,1]) + nr_dev*np.std(x[:, 1]), color='r', linestyle='--')  # plot horizontal cutoff
         for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
             plt.scatter(x[tess_ind_cluster == i,0],
-                        x[tess_ind_cluster == i,1], c=palette[i,:])  # I should relate somehow s to N and the fig size
+                        x[tess_ind_cluster == i,1], color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
             if i in extr_clusters:      # if cluster is extreme - plot number in red
                 plt.text(coord_centers[i,0], coord_centers[i,1], str(i),color='r')  # numbers of clusters
             else:
@@ -798,11 +800,11 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         plt.figure()
         ax = plt.axes(projection='3d')
         for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
-            ax.scatter3D(x[tess_ind_cluster==i,0], x[tess_ind_cluster==i,1], x[tess_ind_cluster==i,2],c=palette[i,:])  # I should relate somehow s to N and the fig size
-            if i in extr_clusters:
-                ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i), color='r')  # numbers of clusters
-            else:
-                ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i))  # numbers of clusters
+            ax.scatter3D(x[tess_ind_cluster==i,0], x[tess_ind_cluster==i,1], x[tess_ind_cluster==i,2],color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
+            # if i in extr_clusters:
+            #     ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i), color='r')  # numbers of clusters
+            # else:
+            #     ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i))  # numbers of clusters
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.set_zlabel("z")
@@ -811,7 +813,7 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         plt.figure(figsize=(6, 6))
         for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
             plt.scatter(x[tess_ind_cluster == i, 0],
-                        x[tess_ind_cluster == i, 3], c=palette[i, :])  # I should relate somehow s to N and the fig size
+                        x[tess_ind_cluster == i, 3], color=palette.colors[i, :])  # I should relate somehow s to N and the fig size
             if i in extr_clusters:  # if cluster is extreme - plot number in red
                 plt.text(coord_centers[i, 0], coord_centers[i, 3], str(i), color='r')  # numbers of clusters
             else:
@@ -825,7 +827,7 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         plt.figure(figsize=(6,6))
         for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
             plt.scatter(x[tess_ind_cluster == i, 2],
-                        x[tess_ind_cluster == i, 4], c=palette[i, :])  # I should relate somehow s to N and the fig size
+                        x[tess_ind_cluster == i, 4], color=palette.colors[i, :])  # I should relate somehow s to N and the fig size
             if i in extr_clusters:  # if cluster is extreme - plot number in red
                 plt.text(coord_centers[i, 2], coord_centers[i, 4], str(i), color='r')  # numbers of clusters
             else:
@@ -857,7 +859,7 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
         plt.figure(figsize=(7, 7))
         for i in range(len(x[:,0])): #for each unique point
             loc_clust = tess_ind_cluster[indices[i]]
-            loc_col = palette[loc_clust,:]
+            loc_col = palette.colors[loc_clust,:]
             plt.scatter(x[i,1], x[i,0], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
 
         for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
@@ -877,7 +879,7 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
         plt.figure(figsize=(7, 7))
         for i in range(len(x[:,0])): #for each unique point
             loc_clust = tess_ind_cluster[indices[i]]
-            loc_col = palette[loc_clust,:]
+            loc_col = palette.colors[loc_clust,:]
             plt.scatter(x[i,0], x[i,1], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
 
         for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
@@ -897,7 +899,7 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
         plt.figure(figsize=(6, 6))
         for i in range(len(x[:,0])): #for each unique point
             loc_clust = tess_ind_cluster[indices[i]]
-            loc_col = palette[loc_clust,:]
+            loc_col = palette.colors[loc_clust,:]
             plt.scatter(x[i,0], x[i,3], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
 
         for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
@@ -917,7 +919,7 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
         plt.figure(figsize=(6, 6))
         for i in range(len(x[:, 0])):  # for each unique point
             loc_clust = tess_ind_cluster[indices[i]]
-            loc_col = palette[loc_clust, :]
+            loc_col = palette.colors[loc_clust, :]
             plt.scatter(x[i, 2], x[i, 4], s=200, marker='s', facecolors=loc_col,
                         edgecolor=loc_col)  # I should relate somehow s to N and the fig size
 
@@ -1095,7 +1097,7 @@ def plot_time_series_clustered(y,t, tess_ind_cluster, palette, type):
     plt.plot(t, y)
     for i in range(len(tess_ind_cluster)-1):
         if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:   # if change of cluster
-            loc_col = palette[tess_ind_cluster[i]]
+            loc_col = palette.colors[tess_ind_cluster[i]]
             # plt.axvline(x=(t[i] + t[i + 1]) / 2, color=loc_col, linestyle='--')
             plt.scatter((t[i] + t[i + 1]) / 2, (y[i] + y[i + 1]) / 2,marker='s', facecolors = 'None', edgecolor = loc_col)
             # plt.text(t[i], y[i], str(tess_ind_cluster[i]))  # numbers of clusters
@@ -1225,7 +1227,9 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
             # Visualize probability matrix
             plot_prob_matrix(P.toarray())
 
-    # Clustering
+    # plt.show()
+
+    # Clustering--
     P_community = spectralopt.partition(P_graph, refine=first_refined)  # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
     D_sparse = community_aff_sparse(0, P_community, M, dim, 'first', 1)  # matrix of point-to-cluster affiliation
 
@@ -1254,10 +1258,19 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
         # Visualize clustered graph
         plot_graph(P_graph_old)
 
-        # color palette
-        palette = np.zeros((D_nodes_in_clusters.shape[1],3))
-        for i in range(D_nodes_in_clusters.shape[1]):
-            palette[i,:] = np.random.rand(1,3)
+        # color palette - linear blue
+        palette = plt.get_cmap('viridis', D_nodes_in_clusters.shape[1])
+        # palette = np.zeros((D_nodes_in_clusters.shape[1], 4))
+        # lin_scale = np.arange(0.1, 1.0, 0.9 /D_nodes_in_clusters.shape[1])
+        # for i in range(D_nodes_in_clusters.shape[1]):
+        #     temp = lin_scale[i]
+        #     if i == 0:
+        #         palette[i, :] = (0.0, 0.0, 0.0, 0.1)
+        #     else:
+        #         palette[i, :] = (0.0, 0.0, temp, temp)
+        # palette = np.zeros((D_nodes_in_clusters.shape[1],3))
+        # for i in range(D_nodes_in_clusters.shape[1]):
+        #     palette[i,:] = np.random.rand(1,3)
 
     # translate datapoints to cluster number affiliation
     tess_ind_cluster = data_to_clusters(tess_ind_trans, D_nodes_in_clusters)

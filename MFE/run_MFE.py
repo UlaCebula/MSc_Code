@@ -302,7 +302,7 @@ M = 20
 # plt.axhline(np.mean(x[:,1])+7*np.std(x[:,1]), color='red')
 # plt.axhline(np.mean(x[:,1])+9*np.std(x[:,1]), color='red')
 
-plotting = False
+plotting = True
 min_clusters=30 #20
 max_it=10
 
@@ -316,7 +316,6 @@ for i in range(len(clusters)):  #print average times spend in extreme clusters
     if loc_cluster.is_extreme==2:
         extr_clusters = np.append(extr_clusters, i)
     # print("Average time in cluster ", loc_cluster.nr, " is: ", loc_cluster.avg_time, " s")
-
 
 paths = find_extr_paths(extr_clusters,P)
 
@@ -334,74 +333,74 @@ for i in range(len(clusters)):  # for each cluster
 plot_cluster_statistics(clusters, min_prob, min_time, length)
 plt.show()
 
-# take (new) data series
-t_new,x_new = MFE_read_DI(filename, dt)     #let's pretend this is a new data series
-
-t2 = time.time()
-#tesselate the new data
-x_new_tess,temp= tesselate(x_new,M,[],7)    #tesselate function without extreme event id
-x_new_tess = tess_to_lexi(x_new_tess, M, dim)
-
-# cluster affiliation
-x_new_clusters = data_to_clusters(x_new_tess, D)
-
-elapsed = time.time() - t2
-print("Time of analyzing new data: ", elapsed)
-
-# print("Extreme event at t= ")
-# show time series with extreme events (real-time)
-
-fig, axs = plt.subplots(2)
-fig.suptitle("Real-time predictions")
-
-axs[0].set_xlim([t_new[0], t_new[-1]])
-axs[0].set_xlabel("t")
-axs[0].set_ylabel("D")
-
-# axs[1].set_xlim([t_new[0], t_new[-1]])
-axs[1].set_xlabel("t")
-axs[1].set_ylabel("extreme")
-axs[1].set_ylim([-0.5, max(length)+0.5])
-axs[1].yaxis.grid(True,which='minor')
-
-n_skip=5
-spacing = np.arange(0, len(t_new), n_skip, dtype=int)
-for i in range(len(spacing)):
-    if i!=0:
-        loc_clust = data_to_clusters(x_new_tess[spacing[i]], D)
-        axs[0].plot([t_new[spacing[i - 1]], t_new[spacing[i]]], [x_new[spacing[i - 1], 0], x_new[spacing[1], 0]], color='blue')
-
-        temp2=clusters[x_new_clusters[spacing[i]]].is_extreme
-        temp = clusters[x_new_clusters[spacing[i-1]]].is_extreme
-        # probability of transitioning to extreme event (shortest path)    # minimum time to extreme event
-        # if temp2==2:
-        #     axs[1].plot([t_new[spacing[i-1]], t_new[spacing[i]]], [temp, temp2],color='red')
-        #
-        # elif temp2==1:
-        #     axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
-        #                 [temp,
-        #                  temp2], color='orange')
-        # else:
-        #     if temp==2:  # if previous was extreme
-        #         axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
-        #                     [temp, temp2], color='red')
-        #     elif temp==1:   # if previous was precursor
-        #         axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
-        #                     [temp, temp2], color='orange')
-        #     else:
-        #         axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
-        #                 [temp, temp2], color='green')
-        temp2 = length[x_new_clusters[spacing[i]]]
-        temp = length[x_new_clusters[spacing[i - 1]]]
-        axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]], [temp, temp2], color='blue')
-        plt.grid('minor')
-
-        # text = fig.text(0.05, 0.03, str(clusters[x_new_clusters[spacing[i]]].prob_to_extreme))
-        text = fig.text(0.05, 0.01, 'Probability: ' + str(min_prob[clusters[x_new_clusters[spacing[i]]].nr]))
-        text2 = fig.text(0.05, 0.05, 'Time: ' + str(min_time[clusters[x_new_clusters[spacing[i]]].nr]))
-        # axs[1].text(0,0,)
-        axs[1].set_xlim([t_new[spacing[i-1]]-n_skip*10, t_new[spacing[i]]+ n_skip*10])
-        plt.pause(0.001)
-        text.remove()
-        text2.remove()
-plt.show()
+# # take (new) data series
+# t_new,x_new = MFE_read_DI(filename, dt)     #let's pretend this is a new data series
+#
+# t2 = time.time()
+# #tesselate the new data
+# x_new_tess,temp= tesselate(x_new,M,[],7)    #tesselate function without extreme event id
+# x_new_tess = tess_to_lexi(x_new_tess, M, dim)
+#
+# # cluster affiliation
+# x_new_clusters = data_to_clusters(x_new_tess, D)
+#
+# elapsed = time.time() - t2
+# print("Time of analyzing new data: ", elapsed)
+#
+# # print("Extreme event at t= ")
+# # show time series with extreme events (real-time)
+#
+# fig, axs = plt.subplots(2)
+# fig.suptitle("Real-time predictions")
+#
+# axs[0].set_xlim([t_new[0], t_new[-1]])
+# axs[0].set_xlabel("t")
+# axs[0].set_ylabel("D")
+#
+# # axs[1].set_xlim([t_new[0], t_new[-1]])
+# axs[1].set_xlabel("t")
+# axs[1].set_ylabel("extreme")
+# axs[1].set_ylim([-0.5, max(length)+0.5])
+# axs[1].yaxis.grid(True,which='minor')
+#
+# n_skip=5
+# spacing = np.arange(0, len(t_new), n_skip, dtype=int)
+# for i in range(len(spacing)):
+#     if i!=0:
+#         loc_clust = data_to_clusters(x_new_tess[spacing[i]], D)
+#         axs[0].plot([t_new[spacing[i - 1]], t_new[spacing[i]]], [x_new[spacing[i - 1], 0], x_new[spacing[1], 0]], color='blue')
+#
+#         temp2=clusters[x_new_clusters[spacing[i]]].is_extreme
+#         temp = clusters[x_new_clusters[spacing[i-1]]].is_extreme
+#         # probability of transitioning to extreme event (shortest path)    # minimum time to extreme event
+#         # if temp2==2:
+#         #     axs[1].plot([t_new[spacing[i-1]], t_new[spacing[i]]], [temp, temp2],color='red')
+#         #
+#         # elif temp2==1:
+#         #     axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
+#         #                 [temp,
+#         #                  temp2], color='orange')
+#         # else:
+#         #     if temp==2:  # if previous was extreme
+#         #         axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
+#         #                     [temp, temp2], color='red')
+#         #     elif temp==1:   # if previous was precursor
+#         #         axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
+#         #                     [temp, temp2], color='orange')
+#         #     else:
+#         #         axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
+#         #                 [temp, temp2], color='green')
+#         temp2 = length[x_new_clusters[spacing[i]]]
+#         temp = length[x_new_clusters[spacing[i - 1]]]
+#         axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]], [temp, temp2], color='blue')
+#         plt.grid('minor')
+#
+#         # text = fig.text(0.05, 0.03, str(clusters[x_new_clusters[spacing[i]]].prob_to_extreme))
+#         text = fig.text(0.05, 0.01, 'Probability: ' + str(min_prob[clusters[x_new_clusters[spacing[i]]].nr]))
+#         text2 = fig.text(0.05, 0.05, 'Time: ' + str(min_time[clusters[x_new_clusters[spacing[i]]].nr]))
+#         # axs[1].text(0,0,)
+#         axs[1].set_xlim([t_new[spacing[i-1]]-n_skip*10, t_new[spacing[i]]+ n_skip*10])
+#         plt.pause(0.001)
+#         text.remove()
+#         text2.remove()
+# plt.show()
