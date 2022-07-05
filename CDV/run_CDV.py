@@ -101,5 +101,5 @@ max_it=10
 
 clusters, D, P = extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic',7,plotting, False)
 
-plot_cluster_statistics(clusters) # because no extreme events
+plot_cluster_statistics(clusters, tf) # because no extreme events
 plt.show()

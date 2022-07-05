@@ -255,11 +255,11 @@ hf.close()
 # plt.xlabel("I")
 # plt.ylabel("D")
 
-plt.figure()
-plt.plot(t,I)
-
-plt.figure()
-plt.plot(t,Diss)
+# plt.figure()
+# plt.plot(t,I)
+#
+# plt.figure()
+# plt.plot(t,Diss)
 
 # plt.show()
 
@@ -273,17 +273,30 @@ plt.plot(t,Diss)
 # plt.xlim(0,T)
 
 type='kolmogorov'
-dim = 5#83
+dim = 4
 Diss = Diss.reshape((len(Diss),1))
 I = I.reshape((len(Diss),1))
 x = np.append(Diss, I, axis=1)      # same as in Farazmand and sapsis - this plus triad with k_f = 4, where this is the mean flow
-x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)
+# x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)
 x = np.append(x,four_uu[0,4,:].reshape(len(t),1), axis=1)
-x = np.append(x,four_uu[1,4,:].reshape(len(t),1), axis=1)
+x = np.append(x,four_uu[1,4,:].reshape(len(t),1), axis=1) # this is the faulty one
 # for i in range(0,9):
 #     for j in range(0,9):
 #         x = np.append(x,four_uu[i,j,:].reshape(len(t),1), axis=1)
 extr_dim = np.arange(0,dim) #np.arange(0,83)    # define both dissipation and energy as the extreme dimensions
+
+####TEMPORARY### Plot all extreme dimensions on one plot normalised
+# colors = ['r', 'g', 'b', 'y', 'c', 'k']
+# lines = ['-', '-', '--', ':', '-.']
+# plt.figure()
+# for i in range(5):
+#     avg = np.mean(x[:,i])
+#     maxi = np.max(x[:,i])
+#     mini = np.min(x[:,i])
+#     x[:,i] = np.divide((x[:,i]-avg),abs(maxi-mini))
+#     plt.plot(t, x[:,i], color = colors[i], linestyle = lines[i])
+# plt.legend(['D','k', 'a(1,0)', 'a(0,4)', 'a(1,4)'])
+# plt.show()
 
 # Tesselation
 M = 20
@@ -293,7 +306,7 @@ min_clusters=30 #20
 max_it=10
 
 clusters, D, P = extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 5,plotting, False)
-plt.show()
+# plt.show()
 
 extr_clusters = np.empty(0, int)
 for i in range(len(clusters)):  #print average times spend in extreme clusters

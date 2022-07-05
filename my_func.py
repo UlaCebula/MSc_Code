@@ -129,48 +129,91 @@ class cluster(object):
         # number of times the cluster loop in given time series
         self.nr_instances = nr_instances
 
-def plot_cluster_statistics(clusters, min_prob=None, min_time=None, length=None):
+def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=None):
     numbers = np.arange(len(clusters))
-    if min_prob is not None:# if we have extreme events
+    color_pal = ['#1f77b4'] * (max(cluster.nr for cluster in clusters)+1)   # default blue
+
+    if min_prob is not None:# if we have extreme events - omit extreme clusters in some of the statistics
+        # set color palette
+        is_extreme = np.array([cluster.is_extreme for cluster in clusters])
+        for i in range(len(is_extreme)):    # not efficient but other ways don't work and idk why
+            if is_extreme[i]==2:
+                color_pal[i] = '#d62728'    # red
+            elif is_extreme[i]==1:
+                color_pal[i] = '#ff7f0e'    # orange
+
         # show cluster statistics
-        plt.figure()
-        plt.bar(numbers, min_prob)
-        plt.grid('minor')
-        plt.xlabel("Cluster")
-        plt.ylabel("Probability to extreme")
+        min_prob[min_prob==1] = 0# change the probability in extreme clusters to zero so they don't appear in the plots
+        fig, ax = plt.subplots()
+        ax.bar(numbers, min_prob, color=color_pal)
+        ax.grid('minor')
+        temp_labels = ax.containers[0]
+        for p in temp_labels:  # skip the last patch as it is the background
+            x, y = p.get_xy()
+            w, h = p.get_width(), p.get_height()
+            if h != 0:  # anything that have a height of 0 will not be annotated
+                ax.text(x + 0.5 * w, y + h, '%0.2e' % h, va='bottom', ha='center')
+        # ax.bar_label(ax.containers[0], label_type='edge')
+        ax.set_xlabel("Cluster")
+        ax.set_ylabel("Probability to extreme")
 
-        plt.figure()
-        plt.bar(numbers, min_time)
-        plt.grid('minor')
-        plt.xlabel("Cluster")
-        plt.ylabel("Time to extreme")
+        fig, ax = plt.subplots()
+        ax.bar(numbers, np.round(min_time,2), color=color_pal)
+        ax.grid('minor')
+        temp_labels = ax.containers[0]
+        for p in temp_labels:  # skip the last patch as it is the background
+                x, y = p.get_xy()
+                w, h = p.get_width(), p.get_height()
+                if h != 0:  # anything that have a height of 0 will not be annotated
+                    ax.text(x + 0.5 * w, y + h, '%0.2f' % h, va='bottom', ha='center')
+        # ax.bar_label(temp_labels, label_type='edge')
+        ax.set_xlabel("Cluster")
+        ax.set_ylabel("Minimum time to extreme [s]")
 
-        plt.figure()
-        plt.bar(numbers, length)
-        plt.grid('minor')
-        plt.xlabel("Cluster")
-        plt.ylabel("Length of shortest path to extreme")
+        fig, ax = plt.subplots()
+        ax.bar(numbers, length, color=color_pal)
+        ax.grid('minor')
+        temp_labels = ax.containers[0]
+        for p in temp_labels:  # skip the last patch as it is the background
+            x, y = p.get_xy()
+            w, h = p.get_width(), p.get_height()
+            if h != 0:  # anything that have a height of 0 will not be annotated
+                ax.text(x + 0.5 * w, y + h, '%0.0f' % h, va='bottom', ha='center')
+        # ax.bar_label(ax.containers[0], label_type='edge')
+        ax.set_xlabel("Cluster")
+        ax.set_ylabel("Length of shortest path to extreme")
 
     # average time in cluster
-    plt.figure()
-    plt.bar(numbers, [cluster.avg_time for cluster in clusters])
-    plt.grid('minor')
-    plt.xlabel("Cluster")
-    plt.ylabel("Average time spend in cluster")
+    fig, ax = plt.subplots()
+    ax.bar(numbers, [np.round(cluster.avg_time,2) for cluster in clusters], color=color_pal)
+    ax.grid('minor')
+    ax.bar_label(ax.containers[0], label_type='edge')
+    ax.set_xlabel("Cluster")
+    ax.set_ylabel("Average time spend in cluster [s]")
+
+    # percentage of total time spend in cluster
+    fig, ax = plt.subplots()
+    ax.bar(numbers, [np.round((cluster.avg_time*cluster.nr_instances)/T*100,3) for cluster in clusters], color=color_pal)
+    ax.grid('minor')
+    ax.bar_label(ax.containers[0], label_type='edge')
+    ax.set_xlabel("Cluster")
+    ax.set_ylabel("% time spend in cluster")
 
     # cluster size (in nodes)
-    plt.figure()
-    plt.bar(numbers, [cluster.nodes.size for cluster in clusters])
-    plt.grid('minor')
-    plt.xlabel("Cluster")
-    plt.ylabel("# nodes in cluster")
+    fig, ax = plt.subplots()
+    ax.bar(numbers, [cluster.nodes.size for cluster in clusters], color=color_pal)
+    ax.grid('minor')
+    ax.bar_label(ax.containers[0], label_type='edge')
+    ax.set_xlabel("Cluster")
+    ax.set_ylabel("# nodes in cluster")
 
     # number of instances in whole data frame
-    plt.figure()
-    plt.bar(numbers, [cluster.nr_instances for cluster in clusters])
-    plt.grid('minor')
-    plt.xlabel("Cluster")
-    plt.ylabel("# instances in time series")
+    fig, ax = plt.subplots()
+    ax.bar(numbers, [cluster.nr_instances for cluster in clusters], color=color_pal)
+    ax.grid('minor')
+    ax.bar_label(ax.containers[0], label_type='edge')
+    ax.set_xlabel("Cluster")
+    ax.set_ylabel("# instances in time series")
 
     return 1
 
@@ -1222,7 +1265,7 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
 
     if plotting:
         # Visualize unclustered graph
-        plot_graph(P_graph)
+        # plot_graph(P_graph)
         if dim<4:  # the matrix will be too big
             # Visualize probability matrix
             plot_prob_matrix(P.toarray())
@@ -1260,17 +1303,6 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
 
         # color palette - linear blue
         palette = plt.get_cmap('viridis', D_nodes_in_clusters.shape[1])
-        # palette = np.zeros((D_nodes_in_clusters.shape[1], 4))
-        # lin_scale = np.arange(0.1, 1.0, 0.9 /D_nodes_in_clusters.shape[1])
-        # for i in range(D_nodes_in_clusters.shape[1]):
-        #     temp = lin_scale[i]
-        #     if i == 0:
-        #         palette[i, :] = (0.0, 0.0, 0.0, 0.1)
-        #     else:
-        #         palette[i, :] = (0.0, 0.0, temp, temp)
-        # palette = np.zeros((D_nodes_in_clusters.shape[1],3))
-        # for i in range(D_nodes_in_clusters.shape[1]):
-        #     palette[i,:] = np.random.rand(1,3)
 
     # translate datapoints to cluster number affiliation
     tess_ind_cluster = data_to_clusters(tess_ind_trans, D_nodes_in_clusters)
@@ -1282,7 +1314,6 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
     extr_clusters, from_clusters = extr_iden(extr_trans, D_nodes_in_clusters, P_old)
     print('From cluster: ', from_clusters, 'To extreme cluster: ', extr_clusters)
 
-    # DIVIDE P BY SUM OF ROW!!
     for i in range(P_old.shape[0]): # for all unique rows of the deflated probability matrix
         denom = np.sum(D_nodes_in_clusters,axis=0)
         denom = denom[0,i]  # sum of nodes in cluster - we should divide by this

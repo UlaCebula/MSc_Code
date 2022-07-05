@@ -79,5 +79,5 @@ for i in range(len(clusters)):  # for each cluster
     min_time[i] = loc_time
     length[i] = loc_length
 
-plot_cluster_statistics(clusters, min_prob, min_time, length)
+plot_cluster_statistics(clusters, tf, min_prob, min_time, length)
 plt.show()
