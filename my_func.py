@@ -9,7 +9,7 @@ from modularity_maximization import spectralopt
 import matplotlib.pyplot as plt
 import numpy.linalg
 
-def find_extr_paths_loop(P,local_path, cluster_from, ready_paths):
+def find_extr_paths_loop(P,local_path, cluster_from, ready_paths, extr_clusters):
     ''' Inner function for finding loops leading to given extreme cluster
 
     :param P: sparse deflated probability matrix
@@ -22,13 +22,17 @@ def find_extr_paths_loop(P,local_path, cluster_from, ready_paths):
     next_clusters = np.delete(next_clusters, np.where(next_clusters==cluster_from))  # exclude looping inside oneself
 
     for next_cluster in next_clusters:  # look at all paths
-        loc_local_path = local_path # reset
-        if next_cluster not in loc_local_path:
-            loc_local_path.append(next_cluster)  # append and go deeper
-            loc_local_path = find_extr_paths_loop(P, loc_local_path, next_cluster,ready_paths)
-        else:
-            if tuple(loc_local_path) not in ready_paths:    # if we don't have this path yet - add to vector of all paths
-                ready_paths.append(tuple(loc_local_path))
+        if next_cluster not in extr_clusters:   # if the next one is not extreme
+            loc_local_path = local_path # reset
+            if next_cluster not in loc_local_path:
+                loc_local_path.append(next_cluster)  # append and go deeper
+                find_extr_paths_loop(P, loc_local_path, next_cluster,ready_paths, extr_clusters)
+            else:
+                if tuple(loc_local_path) not in ready_paths:    # if we don't have this path yet - add to vector of all paths
+                    ready_paths.append(tuple(loc_local_path))
+        else:       # if the next one is extreme
+            if tuple(local_path) not in ready_paths:  # if we don't have this path yet - add to vector of all paths
+                ready_paths.append(tuple(local_path))
     return ready_paths
 
 def find_extr_paths(extr_clusters,P):
@@ -39,18 +43,19 @@ def find_extr_paths(extr_clusters,P):
     :return: returns vector of ready paths (tuples) for all extreme clusters
     '''
 
-    final_paths =[]
+    final_paths =list()
     for extr_cluster in extr_clusters:
 
         clusters_from = P.col[P.row==extr_cluster]
         clusters_from = np.delete(clusters_from,np.where(clusters_from==extr_cluster))   # exclude looping inside oneself
 
         for cluster_from in clusters_from:  # first one
-            local_path = [extr_cluster, cluster_from]  # start/restart path
-            ready_paths = []
+            if cluster_from not in extr_clusters:
+                local_path = [extr_cluster, cluster_from]  # start/restart path
+                ready_paths = []
 
-            ready_paths = find_extr_paths_loop(P, local_path, cluster_from, ready_paths)       # we don't have to add the if statement before this one because it's the first try and we excluded it already
-            final_paths = np.append(final_paths, ready_paths)
+                find_extr_paths_loop(P, local_path, cluster_from, ready_paths, extr_clusters)       # we don't have to add the if statement before this one because it's the first try and we excluded it already
+                final_paths.append(ready_paths)
     return final_paths
 
 def prob_to_extreme(cluster_nr,paths, T, P, clusters):
@@ -74,17 +79,17 @@ def prob_to_extreme(cluster_nr,paths, T, P, clusters):
         for i in range(len(paths)):     # for all paths
             loc_prob = 1
             loc_time = 0
-            if cluster_nr in paths[i] and type(paths[i])!=int:     # find path with our cluster
+            loc_path = np.asarray(paths[i][0])
+            if cluster_nr in loc_path:     # find path with our cluster
                 #take into account only part of path to our cluster
-                loc_path = np.asarray(paths[i])
                 loc_end = np.where(loc_path==cluster_nr)[0]
                 loc_end = loc_end[0]
                 loc_path = loc_path[0:loc_end+1]
 
                 for j in range(len(loc_path)):
                     if j!=len(loc_path)-1:
-                        temp = P.data[P.row[P.col == loc_path[j]]]     # row is from, col is to
-                        temp = temp[P.row[P.col == loc_path[j]]==loc_path[j+1]]
+                        temp = P.data[P.col[P.row == loc_path[j]]]     # row is to, col is from
+                        temp = temp[P.col[P.row == loc_path[j]]==loc_path[j+1]]
                         loc_prob = loc_prob*temp
 
                     if j!=0:   # exclude first and last path
@@ -144,7 +149,7 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
 
         # show cluster statistics
         min_prob[min_prob==1] = 0# change the probability in extreme clusters to zero so they don't appear in the plots
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(12,7))
         ax.bar(numbers, min_prob, color=color_pal)
         ax.grid('minor')
         temp_labels = ax.containers[0]
@@ -156,8 +161,10 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
         # ax.bar_label(ax.containers[0], label_type='edge')
         ax.set_xlabel("Cluster")
         ax.set_ylabel("Probability to extreme")
+        plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
+        plt.savefig('stat_prob.png')
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(12,7))
         ax.bar(numbers, np.round(min_time,2), color=color_pal)
         ax.grid('minor')
         temp_labels = ax.containers[0]
@@ -169,8 +176,10 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
         # ax.bar_label(temp_labels, label_type='edge')
         ax.set_xlabel("Cluster")
         ax.set_ylabel("Minimum time to extreme [s]")
+        plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
+        plt.savefig('stat_time.png')
 
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(12,7))
         ax.bar(numbers, length, color=color_pal)
         ax.grid('minor')
         temp_labels = ax.containers[0]
@@ -182,38 +191,48 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
         # ax.bar_label(ax.containers[0], label_type='edge')
         ax.set_xlabel("Cluster")
         ax.set_ylabel("Length of shortest path to extreme")
+        plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
+        plt.savefig('stat_path.png')
 
     # average time in cluster
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12,7))
     ax.bar(numbers, [np.round(cluster.avg_time,2) for cluster in clusters], color=color_pal)
     ax.grid('minor')
     ax.bar_label(ax.containers[0], label_type='edge')
     ax.set_xlabel("Cluster")
     ax.set_ylabel("Average time spend in cluster [s]")
+    plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
+    plt.savefig('stat_circ_time.png')
 
     # percentage of total time spend in cluster
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12,7))
     ax.bar(numbers, [np.round((cluster.avg_time*cluster.nr_instances)/T*100,3) for cluster in clusters], color=color_pal)
     ax.grid('minor')
     ax.bar_label(ax.containers[0], label_type='edge')
     ax.set_xlabel("Cluster")
     ax.set_ylabel("% time spend in cluster")
+    plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
+    plt.savefig('stat_percent_time.png')
 
     # cluster size (in nodes)
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12,7))
     ax.bar(numbers, [cluster.nodes.size for cluster in clusters], color=color_pal)
     ax.grid('minor')
     ax.bar_label(ax.containers[0], label_type='edge')
     ax.set_xlabel("Cluster")
     ax.set_ylabel("# nodes in cluster")
+    plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
+    plt.savefig('stat_nr_nodes.png')
 
     # number of instances in whole data frame
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(12,7))
     ax.bar(numbers, [cluster.nr_instances for cluster in clusters], color=color_pal)
     ax.grid('minor')
     ax.bar_label(ax.containers[0], label_type='edge')
     ax.set_xlabel("Cluster")
     ax.set_ylabel("# instances in time series")
+    plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
+    plt.savefig('stat_nr_instances.png')
 
     return 1
 

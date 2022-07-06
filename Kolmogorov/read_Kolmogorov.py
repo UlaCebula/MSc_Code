@@ -273,12 +273,12 @@ hf.close()
 # plt.xlim(0,T)
 
 type='kolmogorov'
-dim = 4
+dim = 3
 Diss = Diss.reshape((len(Diss),1))
 I = I.reshape((len(Diss),1))
 x = np.append(Diss, I, axis=1)      # same as in Farazmand and sapsis - this plus triad with k_f = 4, where this is the mean flow
 # x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)
-x = np.append(x,four_uu[0,4,:].reshape(len(t),1), axis=1)
+# x = np.append(x,four_uu[0,4,:].reshape(len(t),1), axis=1)
 x = np.append(x,four_uu[1,4,:].reshape(len(t),1), axis=1) # this is the faulty one
 # for i in range(0,9):
 #     for j in range(0,9):
