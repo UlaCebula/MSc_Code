@@ -76,9 +76,8 @@ tf = 24000.0 #24000.0
 dt = 0.1 #0.1
 t = np.arange(t0,tf,dt)
 N = np.size(t)
-dim=6 # number of dimensions
 
-x = np.zeros((N,dim))
+x = np.zeros((N,6))
 x[0,:] = np.array([.11,.22,.33,.44,.55,.66]) # initial condition
 
 for i in range(N-1):
@@ -99,7 +98,6 @@ plotting = True
 min_clusters=30
 max_it=10
 
-clusters, D, P = extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic',7,plotting, False)
-
-plot_cluster_statistics(clusters, tf) # because no extreme events
+clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic',7,plotting, False)
+calculate_statistics(extr_dim, clusters, P, tf)
 plt.show()

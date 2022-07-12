@@ -55,7 +55,7 @@ def find_extr_paths(extr_clusters,P):
                 ready_paths = []
 
                 find_extr_paths_loop(P, local_path, cluster_from, ready_paths, extr_clusters)       # we don't have to add the if statement before this one because it's the first try and we excluded it already
-                final_paths.append(ready_paths)
+                final_paths.extend(ready_paths)
     return final_paths
 
 def prob_to_extreme(cluster_nr,paths, T, P, clusters):
@@ -79,7 +79,7 @@ def prob_to_extreme(cluster_nr,paths, T, P, clusters):
         for i in range(len(paths)):     # for all paths
             loc_prob = 1
             loc_time = 0
-            loc_path = np.asarray(paths[i][0])
+            loc_path = np.asarray(paths[i])
             if cluster_nr in loc_path:     # find path with our cluster
                 #take into account only part of path to our cluster
                 loc_end = np.where(loc_path==cluster_nr)[0]
@@ -135,6 +135,15 @@ class cluster(object):
         self.nr_instances = nr_instances
 
 def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=None):
+    '''
+
+    :param clusters:
+    :param T:
+    :param min_prob:
+    :param min_time:
+    :param length:
+    :return:
+    '''
     numbers = np.arange(len(clusters))
     color_pal = ['#1f77b4'] * (max(cluster.nr for cluster in clusters)+1)   # default blue
 
@@ -153,7 +162,7 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
         ax.bar(numbers, min_prob, color=color_pal)
         ax.grid('minor')
         temp_labels = ax.containers[0]
-        for p in temp_labels:  # skip the last patch as it is the background
+        for p in temp_labels:
             x, y = p.get_xy()
             w, h = p.get_width(), p.get_height()
             if h != 0:  # anything that have a height of 0 will not be annotated
@@ -233,6 +242,39 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
     ax.set_ylabel("# instances in time series")
     plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
     plt.savefig('stat_nr_instances.png')
+
+    return 1
+
+def calculate_statistics(extr_dim, clusters, P, T):
+    '''
+
+    :param extr_dim:
+    :param clusters:
+    :param P:
+    :param T:
+    :return:
+    '''
+    if extr_dim:    # if we have an extreme dimension
+        extr_clusters = np.empty(0, int)
+        for i in range(len(clusters)):  # print average times spend in extreme clusters
+            loc_cluster = clusters[i]
+            if loc_cluster.is_extreme == 2:
+                extr_clusters = np.append(extr_clusters, i)
+
+        paths = find_extr_paths(extr_clusters, P)
+
+        min_prob = np.zeros((len(clusters)))
+        min_time = np.zeros((len(clusters)))
+        length = np.zeros((len(clusters)))
+
+        for i in range(len(clusters)):  # for each cluster
+            # prob to extreme
+            loc_prob, loc_time, loc_length = prob_to_extreme(i, paths, T, P, clusters)
+            min_prob[i] = loc_prob
+            min_time[i] = loc_time
+            length[i] = loc_length
+
+    plot_cluster_statistics(clusters, T, min_prob, min_time, length)
 
     return 1
 
@@ -691,11 +733,11 @@ def plot_phase_space(x, type):
     if type=='MFE_dissipation' or type=='kolmogorov':
         plt.figure()
         plt.plot(x[:,1], x[:,0])
-        plt.title("Dissipation vs energy")
+        # plt.title("Dissipation vs energy")
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.ylabel("D")
-        plt.xlabel("I")
+        plt.xlabel("k")
 
     if type=='sine':
         plt.figure(figsize=(7, 7))
@@ -757,7 +799,7 @@ def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
                 plt.scatter(least_prob_tess[i,2], least_prob_tess[i,3], facecolors='green', edgecolor='green')    # to (or maybe the other way around)
         plt.grid('minor', 'both')
         plt.minorticks_on()
-        plt.xlabel("I")
+        plt.xlabel("k")
         plt.ylabel("D")
 
     if type=='sine':
@@ -839,7 +881,7 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
                 plt.text(coord_centers[i,1], coord_centers[i,0], str(i))  # numbers of clusters
         plt.grid('minor', 'both')
         plt.minorticks_on()
-        plt.xlabel("I")
+        plt.xlabel("k")
         plt.ylabel("D")
 
     if type=='sine':
@@ -931,7 +973,7 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
                 plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i))  # numbers of clusters
         plt.grid('minor', 'both')
         plt.minorticks_on()
-        plt.xlabel("I")
+        plt.xlabel("k")
         plt.ylabel("D")
 
     if type=='sine':
@@ -1038,7 +1080,7 @@ def plot_time_series(x,t, type):
         plt.subplot(2, 1, 2)
         plt.plot(t, x[:, 1])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("I")
+        plt.ylabel("k")
         plt.xlabel("t")
 
     if type=='sine':
@@ -1247,7 +1289,7 @@ def find_closest_center(y,clusters):
             closest_cluster=cluster.nr
     return closest_cluster
 
-def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, prob_type='classic',nr_dev=7,plotting=True, first_refined=False):
+def extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, prob_type='classic',nr_dev=7,plotting=True, first_refined=False):
     """Big loop with calculation for the different systems
 
     :param t: time vector
@@ -1264,6 +1306,7 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
     :param first_refined: bool property defining whether the first clustering should be done with refinement
     :return: none, runs calculations and plots results; can be modified to output the final deflated probability matrix
     """
+    dim = x.shape[1]
     tess_ind, extr_id = tesselate(x, M, extr_dim,nr_dev)  # where extr_dim indicates the dimension by which the extreme event should be identified
     # Transition probability
     P = probability(tess_ind, prob_type)  # create sparse transition probability matrix
@@ -1285,7 +1328,7 @@ def extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, 
     if plotting:
         # Visualize unclustered graph
         # plot_graph(P_graph)
-        if dim<4:  # the matrix will be too big
+        if dim>4:  # the matrix will be too big
             # Visualize probability matrix
             plot_prob_matrix(P.toarray())
 

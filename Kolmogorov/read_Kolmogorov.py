@@ -273,30 +273,17 @@ hf.close()
 # plt.xlim(0,T)
 
 type='kolmogorov'
-dim = 3
+
 Diss = Diss.reshape((len(Diss),1))
 I = I.reshape((len(Diss),1))
 x = np.append(Diss, I, axis=1)      # same as in Farazmand and sapsis - this plus triad with k_f = 4, where this is the mean flow
-# x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)
+x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)
 # x = np.append(x,four_uu[0,4,:].reshape(len(t),1), axis=1)
-x = np.append(x,four_uu[1,4,:].reshape(len(t),1), axis=1) # this is the faulty one
+# x = np.append(x,four_uu[1,4,:].reshape(len(t),1), axis=1) # this is the faulty one
 # for i in range(0,9):
 #     for j in range(0,9):
 #         x = np.append(x,four_uu[i,j,:].reshape(len(t),1), axis=1)
-extr_dim = np.arange(0,dim) #np.arange(0,83)    # define both dissipation and energy as the extreme dimensions
-
-####TEMPORARY### Plot all extreme dimensions on one plot normalised
-# colors = ['r', 'g', 'b', 'y', 'c', 'k']
-# lines = ['-', '-', '--', ':', '-.']
-# plt.figure()
-# for i in range(5):
-#     avg = np.mean(x[:,i])
-#     maxi = np.max(x[:,i])
-#     mini = np.min(x[:,i])
-#     x[:,i] = np.divide((x[:,i]-avg),abs(maxi-mini))
-#     plt.plot(t, x[:,i], color = colors[i], linestyle = lines[i])
-# plt.legend(['D','k', 'a(1,0)', 'a(0,4)', 'a(1,4)'])
-# plt.show()
+extr_dim = np.arange(0,x.shape[1]) #np.arange(0,83)    # define both dissipation and energy as the extreme dimensions
 
 # Tesselation
 M = 20
@@ -305,31 +292,8 @@ plotting = True
 min_clusters=30 #20
 max_it=10
 
-clusters, D, P = extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 5,plotting, False)
-# plt.show()
-
-extr_clusters = np.empty(0, int)
-for i in range(len(clusters)):  #print average times spend in extreme clusters
-    loc_cluster = clusters[i]
-    if loc_cluster.is_extreme==2:
-        extr_clusters = np.append(extr_clusters, i)
-    # print("Average time in cluster ", loc_cluster.nr, " is: ", loc_cluster.avg_time, " s")
-
-# find all paths to extreme events
-paths = find_extr_paths(extr_clusters,P)
-
-min_prob = np.zeros((len(clusters)))
-min_time = np.zeros((len(clusters)))
-length = np.zeros((len(clusters)))
-
-for i in range(len(clusters)):  # for each cluster
-    # prob to extreme
-    loc_prob,loc_time,loc_length = prob_to_extreme(i, paths, t[-1], P, clusters)
-    min_prob[i] = loc_prob
-    min_time[i] = loc_time
-    length[i] = loc_length
-
-plot_cluster_statistics(clusters, min_prob, min_time, length)
+clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 3,plotting, False)
+calculate_statistics(extr_dim, clusters, P, T)
 plt.show()
 
 # # input other (small) data and analyze it

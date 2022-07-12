@@ -48,7 +48,6 @@ rand_scalar = 1
 
 t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
 
-dim = 2
 extr_dim = [0,1]   # define both phase space coordinates as extreme event
 
 # Tesselation
@@ -57,27 +56,6 @@ M = 20
 plotting = True
 min_clusters=15
 max_it=5
-clusters, D, P = extreme_event_identification_process(t,x,dim,M,extr_dim,type, min_clusters, max_it, 'classic', 2,plotting, False)
-
-extr_clusters = np.empty(0, int)
-for i in range(len(clusters)):  #print average times spend in extreme clusters
-    loc_cluster = clusters[i]
-    if loc_cluster.is_extreme==2:
-        extr_clusters = np.append(extr_clusters, i)
-    # print("Average time in cluster ", loc_cluster.nr, " is: ", loc_cluster.avg_time, " s")
-
-paths = find_extr_paths(extr_clusters,P)
-
-min_prob = np.zeros((len(clusters)))
-min_time = np.zeros((len(clusters)))
-length = np.zeros((len(clusters)))
-
-for i in range(len(clusters)):  # for each cluster
-    # prob to extreme
-    loc_prob,loc_time,loc_length = prob_to_extreme(i, paths, t[-1], P, clusters)
-    min_prob[i] = loc_prob
-    min_time[i] = loc_time
-    length[i] = loc_length
-
-plot_cluster_statistics(clusters, tf, min_prob, min_time, length)
+clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 2,plotting, False)
+calculate_statistics(extr_dim, clusters, P, tf)
 plt.show()

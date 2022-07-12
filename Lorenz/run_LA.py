@@ -24,8 +24,7 @@ dt = 0.01
 t = np.arange(t0,tf,dt)
 N = np.size(t)
 
-dim = 3   # three dimensional
-x = np.zeros((N,dim))
+x = np.zeros((N,3))
 x[0,:] = np.array([0, 1.0, 1.05]) # initial condition
 
 for i in range(N-1):
@@ -39,7 +38,6 @@ t = t[500:]
 M=20
 extr_dim = []   # dimension of extreme event, here none
 
-clusters, D, P = extreme_event_identification_process(t,x,dim,M,extr_dim,type, 20, 20, 'classic',7,True, False)
-
-plot_cluster_statistics(clusters,tf) # because no extreme events
+clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, 20, 20, 'classic',7,True, False)
+calculate_statistics(extr_dim, clusters, P, tf)
 plt.show()
