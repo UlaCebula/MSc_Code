@@ -233,9 +233,12 @@ t = np.array(hf.get('t'))
 Diss = np.array(hf.get('/Diss'))
 # a_10 = np.array(hf.get('/four_a10'))
 I = np.array(hf.get('/I'))
-four_uu = np.array(hf.get('/four_uu_real'))
+four_uu_real = np.array(hf.get('/four_uu_real'))
+four_uu_imag = np.array(hf.get('/four_uu_imag'))
 
 hf.close()
+
+four_uu = np.sqrt(four_uu_real**2+four_uu_imag**2)
 
 # D = np.array(D)
 # plt.figure()
@@ -272,7 +275,7 @@ hf.close()
 # plt.ylabel("$|a(1,0)|$")
 # plt.xlim(0,T)
 
-type='kolmogorov'
+type='kolmogorov_kD'
 
 Diss = Diss.reshape((len(Diss),1))
 I = I.reshape((len(Diss),1))
@@ -292,7 +295,7 @@ plotting = True
 min_clusters=30 #20
 max_it=10
 
-clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 3,plotting, False)
+clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 4,plotting, True)
 calculate_statistics(extr_dim, clusters, P, T)
 plt.show()
 

@@ -2,6 +2,7 @@
 # Urszula Golyska 2022
 
 from my_func import *
+import csv
 
 def sine_data_generation(t0, tf, dt, nt_ex, rand_threshold=0.9, rand_amplitude=2, rand_scalar=1):
     """Function for generating data of the sine wave system
@@ -53,9 +54,43 @@ extr_dim = [0,1]   # define both phase space coordinates as extreme event
 # Tesselation
 M = 20
 
-plotting = True
+plotting = False
 min_clusters=15
 max_it=5
-clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 2,plotting, False)
+clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 2,plotting, True)
 calculate_statistics(extr_dim, clusters, P, tf)
-plt.show()
+# plt.show()
+
+x_tess,temp = tesselate(x,M,extr_dim,7)    #tesselate function without extreme event id
+x_tess = tess_to_lexi(x_tess, M, 2)
+x_clusters = data_to_clusters(x_tess, D, x, clusters)
+is_extreme = np.zeros_like(x_clusters)
+for cluster in clusters:
+    is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme
+
+avg_time = backwards_avg_time_to_extreme(is_extreme,dt)
+print(avg_time)
+
+# colors = ['#1f77b4', '#ff7f0e', '#d62728']     # blue, orange, red
+#
+# fig, axs = plt.subplots(2)
+# plt.subplot(2, 1, 1)
+# plt.plot(t,x[:,0])
+# plt.ylabel("D")
+# plt.xlabel("t")
+#
+# plt.subplot(2, 1, 2)
+# plt.plot(t,x[:,1])
+# plt.ylabel("k")
+# plt.xlabel("t")
+#
+# for i in range(len(t) - 1):
+#     if is_extreme[i]!=is_extreme[i+1]:
+#         loc_col=colors[is_extreme[i+1]]
+#         plt.subplot(2, 1, 1)
+#         plt.axvline(x=t[i+1], color=loc_col, linestyle='--')
+#
+#         plt.subplot(2, 1, 2)
+#         plt.axvline(x=t[i + 1], color=loc_col, linestyle='--')
+#
+# plt.show()

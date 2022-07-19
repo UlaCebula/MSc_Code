@@ -295,3 +295,75 @@ max_it=10
 clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
 calculate_statistics(extr_dim, clusters, P, t[-1])
 plt.show()
+
+x_tess,temp = tesselate(x,M,extr_dim,7)    #tesselate function without extreme event id
+x_tess = tess_to_lexi(x_tess, M, 2)
+x_clusters = data_to_clusters(x_tess, D, x, clusters)
+is_extreme = np.zeros_like(x_clusters)
+for cluster in clusters:
+    is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme
+
+colors = ['#1f77b4', '#ff7f0e', '#d62728']     # blue, orange, red
+
+fig, axs = plt.subplots(2)
+plt.subplot(2, 1, 1)
+plt.plot(t,x[:,0])
+plt.ylabel("D")
+plt.xlabel("t")
+
+plt.subplot(2, 1, 2)
+plt.plot(t,x[:,1])
+plt.ylabel("k")
+plt.xlabel("t")
+
+for i in range(len(t) - 1):
+    if is_extreme[i]!=is_extreme[i+1]:
+        loc_col=colors[is_extreme[i+1]]
+        plt.subplot(2, 1, 1)
+        plt.axvline(x=t[i+1], color=loc_col, linestyle='--')
+
+        plt.subplot(2, 1, 2)
+        plt.axvline(x=t[i + 1], color=loc_col, linestyle='--')
+
+plt.show()
+# plt.plot(t[np.where(is_extreme==i)], x[np.where(is_extreme==i),0].reshape(np.size(np.where(is_extreme==i)),1), color=loc_col)
+# plt.figure()
+# for i in range(3):
+#     loc_col = colors[i]
+#     temp_t = t[np.where(is_extreme==i)]
+#     temp_x = x[np.where(is_extreme==i),0].reshape(np.size(np.where(is_extreme==i)),1)
+#
+#     temp_t0 = 0
+#     for j in range(len(temp_t) - 1):
+#         if temp_t[j + 1] != temp_t[j] + dt:  # if the next time is not also there
+#             plt.plot(temp_t[temp_t0:j], x[temp_t0:j,0], color=loc_col)
+#             temp_t0 = j + 1
+#
+# plt.show()
+#
+#
+# ####ADDITIONAL PLOTTING OF TIME SERIES######
+# plt.figure()
+# fig, axs = plt.subplots(2)
+#
+#
+#
+#
+#
+#
+#
+# plt.subplot(2, 1, 1)
+#
+#
+#
+# plt.plot(t, x[:, 0])
+# plt.xlim([t[0], t[-1]])
+# plt.ylabel("D")
+# plt.xlabel("t")
+# plt.subplot(2, 1, 2)
+# plt.plot(t, x[:, 1])
+# plt.xlim([t[0], t[-1]])
+# plt.ylabel("k")
+# plt.xlabel("t")
+#
+# plt.show()
