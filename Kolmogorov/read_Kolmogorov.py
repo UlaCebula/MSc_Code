@@ -239,6 +239,7 @@ four_uu_imag = np.array(hf.get('/four_uu_imag'))
 hf.close()
 
 four_uu = np.sqrt(four_uu_real**2+four_uu_imag**2)
+# four_uu = abs(four_uu_imag)
 
 # D = np.array(D)
 # plt.figure()
@@ -275,12 +276,14 @@ four_uu = np.sqrt(four_uu_real**2+four_uu_imag**2)
 # plt.ylabel("$|a(1,0)|$")
 # plt.xlim(0,T)
 
-type='kolmogorov_kD'
+type='kolmogorov'
 
 Diss = Diss.reshape((len(Diss),1))
 I = I.reshape((len(Diss),1))
 x = np.append(Diss, I, axis=1)      # same as in Farazmand and sapsis - this plus triad with k_f = 4, where this is the mean flow
-x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)
+# x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)
+x = np.append(x,abs(four_uu_real[1,0,:]).reshape(len(t),1), axis=1)
+# x = np.append(x,abs(four_uu_imag[1,0,:]).reshape(len(t),1), axis=1)
 # x = np.append(x,four_uu[0,4,:].reshape(len(t),1), axis=1)
 # x = np.append(x,four_uu[1,4,:].reshape(len(t),1), axis=1) # this is the faulty one
 # for i in range(0,9):
@@ -288,16 +291,58 @@ x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)
 #         x = np.append(x,four_uu[i,j,:].reshape(len(t),1), axis=1)
 extr_dim = np.arange(0,x.shape[1]) #np.arange(0,83)    # define both dissipation and energy as the extreme dimensions
 
+# fig, axs = plt.subplots(4)
+# plt.subplot(4,1,1)
+# plt.plot(t,x[:,0])
+# plt.xlim([0,T])
+# plt.ylabel("D")
+# plt.xlabel("t")
+# plt.subplot(4,1,2)
+# plt.plot(t,x[:,1])
+# plt.xlim([0,T])
+# plt.ylabel("k")
+# plt.xlabel("t")
+# plt.subplot(4,1,3)
+# plt.plot(t,x[:,2])
+# plt.plot(t,x[:,5], '--')
+# plt.plot(t,x[:,5], ':')
+# plt.xlim([0,T])
+# plt.legend(["|a(1,0)|", "|a(0,4)|", "|a(1,4)|"])
+# plt.xlabel("t")
+# plt.subplot(4,1,4)
+# plt.plot(t,x[:,3], '--')
+# plt.plot(t,x[:,4], '-.')
+# plt.xlim([0,T])
+# plt.legend(["|Re(a(1,0))|", "|Im(a(1,0))|"])
+# plt.xlabel("t")
+# plt.show()
+
+
 # Tesselation
 M = 20
 
-plotting = True
+plotting = False
 min_clusters=30 #20
 max_it=10
 
-clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 4,plotting, True)
-calculate_statistics(extr_dim, clusters, P, T)
-plt.show()
+clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 4,plotting, False)
+# calculate_statistics(extr_dim, clusters, P, T)
+# plt.show()
+
+x_tess,temp = tesselate(x,M,extr_dim,4)    #tesselate function without extreme event id
+x_tess = tess_to_lexi(x_tess, M, x.shape[1])
+x_clusters = data_to_clusters(x_tess, D, x, clusters)
+is_extreme = np.zeros_like(x_clusters)
+for cluster in clusters:
+    is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme
+
+avg_time, instances, instances_extreme_no_precursor, instances_precursor_no_extreme = backwards_avg_time_to_extreme(is_extreme,dt, clusters)
+print('Average time from precursor to extreme:', avg_time, ' s')
+print('Nr times when extreme event had a precursor:', instances)
+print('Nr extreme events without precursors (false negative):', instances_extreme_no_precursor)
+print('Percentage of false negatives:', instances_extreme_no_precursor/(instances+instances_extreme_no_precursor)*100, ' %')
+print('Nr precursors without a following extreme event (false positives):', instances_precursor_no_extreme)
+print('Percentage of false positives:', instances_precursor_no_extreme/(instances+instances_precursor_no_extreme)*100, ' %')
 
 # # input other (small) data and analyze it
 # T = 5000

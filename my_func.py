@@ -141,9 +141,9 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
 
     :param clusters: all defined clusters with their properties
     :param T: last time of data series
-    :param min_prob: maximum probability of transitioning to an extreme event
-    :param min_time: minimum average time of transitioning to an extreme event
-    :param length: shortest path to an extreme event
+    :param min_prob: maximum probability of transitioning to an extreme event, default is None (for systems without extreme events)
+    :param min_time: minimum average time of transitioning to an extreme event, default is None (for systems without extreme events)
+    :param length: shortest path to an extreme event, default is None (for systems without extreme events)
     :return: none, makes and saves statistics plots
     '''
     numbers = np.arange(len(clusters))
@@ -262,38 +262,53 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
                 writer.writerow(csv_data)
     return 1
 
-def backwards_avg_time_to_extreme(is_extreme,dt):
-    '''z Finds average time of transitioning to precursor cluster that then goes to extreme cluster, looking backwards from extreme cluster
+def backwards_avg_time_to_extreme(is_extreme,dt, clusters):
+    ''' Finds average time of transitioning to precursor cluster that then goes to extreme cluster, looking backwards from extreme cluster
 
     :param is_extreme: vector defining which clusters are extreme (value 2) and which are precursors (value 1)
     :param dt: time step
-    :return: return value of the average time from entering a precursor stage to the occurrence of an extreme event
+    :param clusters: all defined clusters with their properties
+    :return: returns value of the average time from entering a precursor stage to the occurrence of an extreme event, number or instances of extreme events with a precursor, number of instances of extreme events and number of instances of precursors
     '''
     # ADD Maybe also calculates number of false positives etc
     extreme_events_t = np.where(is_extreme==2)[0]
     precursors_t = np.where(is_extreme==1)[0]
-    instances=0
+    instances_extreme_with_precursor=0
     time = 0
+    instances_extreme_no_precursor=0
+    instances_precursor_no_extreme=0
 
-    for i in range(len(extreme_events_t)-1):
+    for i in range(len(extreme_events_t)-1):    # look at all extreme events
         # we are looking only at the first one step of each instance
         # isolate first case
         if i==0 or (extreme_events_t[i+1]==extreme_events_t[i]+1 and extreme_events_t[i-1]!=extreme_events_t[i]-1):
             temp_ee_t = extreme_events_t[i] #time step of first extreme step
+            if is_extreme[temp_ee_t-1]!=1:
+                instances_extreme_no_precursor+=1
             #look at precursors
             for j in range(len(precursors_t)):
                 if precursors_t[j]+1 == temp_ee_t: # find the instance we are talking about
                     k=j-1   # start going backwards
                     while k>=0:
-                        if precursors_t[k-1] != precursors_t[k]-1:  # we have found the end
+                        if precursors_t[k-1] != precursors_t[k]-1 or k==0:  # we have found the end
                             temp_prec_t = precursors_t[k]
-                            instances += 1
+                            instances_extreme_with_precursor += 1
                             time += (temp_ee_t - temp_prec_t) * dt
                             break
                         k-=1
                     break
-    avg_to_extreme = time/instances
-    return avg_to_extreme
+
+    for i in range(len(precursors_t)-1):    # look at all extreme events
+        # we are looking only at the last step of each instance
+        # isolate last case
+        if i==len(precursors_t)-1 or (precursors_t[i-1]==precursors_t[i]-1 and precursors_t[i+1]!=precursors_t[i]+1):
+            temp_prec_t = precursors_t[i] #last step of precursor step
+            if is_extreme[temp_prec_t+1]!=2:
+                instances_precursor_no_extreme+=1
+
+    avg_to_extreme = time/instances_extreme_with_precursor
+
+    return avg_to_extreme, instances_extreme_with_precursor, instances_extreme_no_precursor, instances_precursor_no_extreme
 
 def calculate_statistics(extr_dim, clusters, P, T):
     ''' Function for calculating the extreme event statistics and plotting all of the statistics
@@ -535,15 +550,18 @@ def to_graph(P):
                 P_graph.add_edge(i, j, weight=P[i, j])
     return P_graph
 
-def plot_graph(P_graph):
+def plot_graph(P_graph, labels):
     """Function for plotting the graph representation of the probability matrix
 
     :param P_graph: graph form of the probability matrix
+    :param labels: bool property defining whether the labels should  be displayed
     :return: none, plots graph representation of probability matrix
     """
     # Visualize graph
     plt.figure()
-    nx.draw_kamada_kawai(P_graph,with_labels=False)
+    # nx.draw(P_graph,with_labels=True)
+    nx.draw_spring(P_graph,with_labels=labels)
+    # nx.draw_kamada_kawai(P_graph,with_labels=False)
     # nx.draw_kamada_kawai(P_graph,with_labels=True)
     return 1
 
@@ -786,9 +804,9 @@ def plot_phase_space(x, type):
         ax.plot(x[:,0], x[:,1], x[:,2], lw=0.5)
         ax.set_xlabel("D")
         ax.set_ylabel("k")
-        ax.set_zlabel("|a(1,0)|")
+        ax.set_zlabel("|a(1,4)|")
 
-    if type=='MFE_dissipation' or 'kolmogorov_kD':
+    if type=='MFE_dissipation' or type=='kolmogorov_kD':
         plt.figure()
         plt.plot(x[:,1], x[:,0])
         # plt.title("Dissipation vs energy")
@@ -852,9 +870,9 @@ def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
         ax.scatter3D(tess_ind[:, 0], tess_ind[:, 1], tess_ind[:, 2])
         ax.set_xlabel("D")
         ax.set_ylabel("k")
-        ax.set_zlabel("|a(1,0)|")
+        ax.set_zlabel("|a(1,4)|")
 
-    if type=='MFE_dissipation' or 'kolmogorov_kD':
+    if type=='MFE_dissipation' or type=='kolmogorov_kD':
         plt.figure(figsize=(7, 7))
         plt.scatter(tess_ind[:,1], tess_ind[:,0], s=200, marker='s', facecolors = 'None', edgecolor = 'blue') #I should relate somehow s to N and the fig size
         if np.size(least_prob_tess)>1:
@@ -946,10 +964,10 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
                             str(i))  # numbers of clusters
             ax.set_xlabel("D")
             ax.set_ylabel("k")
-            ax.set_zlabel("|a(1,0)|")
+            ax.set_zlabel("|a(1,4)|")
             ax.set_title("Self-sustaining process")
 
-    if type=='MFE_dissipation' or 'kolmogorov_kD':
+    if type=='MFE_dissipation' or type=='kolmogorov_kD':
         plt.figure(figsize=(7, 7))
         plt.axhline(y=np.mean(x[:,0])+nr_dev*np.std(x[:, 0]), color='r', linestyle='--') # plot horizontal cutoff
         plt.axvline(x=np.mean(x[:, 1]) + nr_dev*np.std(x[:, 1]), color='r', linestyle='--')  # plot horizontal cutoff
@@ -987,10 +1005,10 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         ax = plt.axes(projection='3d')
         for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
             ax.scatter3D(x[tess_ind_cluster==i,0], x[tess_ind_cluster==i,1], x[tess_ind_cluster==i,2],color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
-            # if i in extr_clusters:
-            #     ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i), color='r')  # numbers of clusters
-            # else:
-            #     ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i))  # numbers of clusters
+            if i in extr_clusters:
+                ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i), color='r')  # numbers of clusters
+            else:
+                ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i))  # numbers of clusters
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.set_zlabel("z")
@@ -1038,7 +1056,7 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
     :param palette: color palette decoding a unique color code for each cluster
     :return: none, plots the tesselated phase space colored by cluster affiliation
     """
-    if type=='MFE_dissipation' or 'kolmogorov_kD':
+    if type=='MFE_dissipation' or type=='kolmogorov_kD':
         # take only unique spots in tesselated space
         x,indices=np.unique(tess_ind,return_index=True,axis=0)
 
@@ -1067,8 +1085,8 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
         for i in range(len(x[:, 0])):  # for each unique point
             loc_clust = tess_ind_cluster[indices[i]]
             loc_col = palette.colors[loc_clust, :]
-            if loc_clust==4:
-                loc_col='red'
+            # if loc_clust==4:
+            #     loc_col='red'
             ax.scatter3D(x[i, 0], x[i, 1], x[i,2],color=loc_col)  # I should relate somehow s to N and the fig size
 
         for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
@@ -1081,7 +1099,7 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
         plt.minorticks_on()
         ax.set_xlabel("D")
         ax.set_ylabel("k")
-        ax.set_zlabel("|a(1,0)|")
+        ax.set_zlabel("|a(1,4)|")
 
     if type=='sine':
         # take only unique spots in tesselated space
@@ -1188,10 +1206,10 @@ def plot_time_series(x,t, type):
         plt.subplot(3, 1, 3)
         plt.plot(t, x[:, 2])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("|a(1,0)|")
+        plt.ylabel("|a(1,4)|")
         plt.xlabel("t")
 
-    if type=='MFE_dissipation' or 'kolmogorov_kD':
+    if type=='MFE_dissipation' or type=='kolmogorov_kD':
         fig, axs = plt.subplots(2)
         if type=='MFE_dissipation':
             fig.suptitle("Dynamic behavior of the MFE flow")
@@ -1439,7 +1457,8 @@ def extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_
     if plotting:
         plot_time_series(x,t,type)
         plot_phase_space(x,type)
-        plot_tesselated_space(tess_ind, type)
+        plot_tesselated_space(tess_ind, type),
+
 
     tess_ind_trans = tess_to_lexi(tess_ind, M, dim)
     P, extr_trans = prob_to_sparse(P, M, extr_id)  # translate matrix into 2D sparse array with points in lexicographic order, translates extr_id to lexicographic id
@@ -1451,11 +1470,11 @@ def extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_
     # least_prob_tess = find_least_probable(P,5,M)
 
     if plotting:
-        if dim<3:  # the matrix will be too big
+        if dim<4:  # the matrix will be too big
             # Visualize unclustered graph
-            # plot_graph(P_graph)
+            plot_graph(P_graph,False)
             # Visualize probability matrix
-            plot_prob_matrix(P.toarray())
+            # plot_prob_matrix(P.toarray())
 
     # plt.show()
 
@@ -1486,7 +1505,7 @@ def extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_
 
     if plotting:
         # Visualize clustered graph
-        plot_graph(P_graph_old)
+        plot_graph(P_graph_old,True)
 
         # color palette - linear blue
         palette = plt.get_cmap('viridis', D_nodes_in_clusters.shape[1])
@@ -1547,5 +1566,4 @@ def extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_
 
     # for obj in clusters:
     #     print(obj.nr, obj.nodes, obj.center, obj.is_extreme)
-
     return clusters, D_nodes_in_clusters, P_old      # returns list of clusters (class:cluster), matrix of cluster affiliation and deflated probability matrix (sparse)

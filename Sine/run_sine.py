@@ -68,8 +68,14 @@ is_extreme = np.zeros_like(x_clusters)
 for cluster in clusters:
     is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme
 
-avg_time = backwards_avg_time_to_extreme(is_extreme,dt)
-print(avg_time)
+avg_time, instances, instances_extreme_no_precursor, instances_precursor_no_extreme = backwards_avg_time_to_extreme(is_extreme,dt, clusters)
+print('Average time from precursor to extreme:', avg_time, ' s')
+print('Nr times when extreme event had a precursor:', instances)
+print('Nr extreme events without precursors (false negative):', instances_extreme_no_precursor)
+print('Percentage of false negatives:', instances_extreme_no_precursor/(instances+instances_extreme_no_precursor)*100, ' %')
+print('Percentage of extreme events with precursor (correct positives):', instances/(instances+instances_extreme_no_precursor)*100, ' %')
+print('Nr precursors without a following extreme event (false positives):', instances_precursor_no_extreme)
+print('Percentage of false positives:', instances_precursor_no_extreme/(instances+instances_precursor_no_extreme)*100, ' %')
 
 # colors = ['#1f77b4', '#ff7f0e', '#d62728']     # blue, orange, red
 #
