@@ -284,17 +284,18 @@ filename = 'MFE_Re600'
 dt = 0.25
 t,x = MFE_read_DI(filename, dt)
 extr_dim = [0,1]    # define both dissipation and energy as the extreme dimensions
-
+np.save('t',t)
+np.save('k_D',x)
 # Tesselation
 M = 20
 
-plotting = False
+plotting = True
 min_clusters=30 #20
 max_it=10
 
 clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
 calculate_statistics(extr_dim, clusters, P, t[-1])
-# plt.show()
+plt.show()
 
 x_tess,temp = tesselate(x,M,extr_dim,7)    #tesselate function without extreme event id
 x_tess = tess_to_lexi(x_tess, M, 2)
@@ -326,8 +327,10 @@ plt.xlabel("t")
 #         plt.axvline(x=t[i + 1], color=loc_col, linestyle='--')
 
 # plt.show()
+save_file_name = 'MFE_clusters'
+np.save(save_file_name, is_extreme)
 
-avg_time, instances, instances_extreme_no_precursor, instances_precursor_no_extreme = backwards_avg_time_to_extreme(is_extreme,dt, clusters)
+avg_time, instances, instances_extreme_no_precursor, instances_precursor_no_extreme,instances_precursor_after_extreme = backwards_avg_time_to_extreme(is_extreme,dt)
 print('Average time from precursor to extreme:', avg_time, ' s')
 print('Nr times when extreme event had a precursor:', instances)
 print('Nr extreme events without precursors (false negative):', instances_extreme_no_precursor)
@@ -335,6 +338,8 @@ print('Percentage of false negatives:', instances_extreme_no_precursor/(instance
 print('Percentage of extreme events with precursor (correct positives):', instances/(instances+instances_extreme_no_precursor)*100, ' %')
 print('Nr precursors without a following extreme event (false positives):', instances_precursor_no_extreme)
 print('Percentage of false positives:', instances_precursor_no_extreme/(instances+instances_precursor_no_extreme)*100, ' %')
+print('Nr precursors following an extreme event:', instances_precursor_after_extreme)
+print('Corrected percentage of false positives:', (instances_precursor_no_extreme-instances_precursor_after_extreme)/(instances+instances_precursor_no_extreme)*100, ' %')
 
 # plt.plot(t[np.where(is_extreme==i)], x[np.where(is_extreme==i),0].reshape(np.size(np.where(is_extreme==i)),1), color=loc_col)
 # plt.figure()

@@ -52,14 +52,14 @@ t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, r
 extr_dim = [0,1]   # define both phase space coordinates as extreme event
 
 # Tesselation
-M = 20
+M = 30
 
-plotting = False
+plotting = True
 min_clusters=15
 max_it=5
 clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 2,plotting, True)
 calculate_statistics(extr_dim, clusters, P, tf)
-# plt.show()
+plt.show()
 
 x_tess,temp = tesselate(x,M,extr_dim,7)    #tesselate function without extreme event id
 x_tess = tess_to_lexi(x_tess, M, 2)

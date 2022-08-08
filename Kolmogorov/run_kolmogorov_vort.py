@@ -1,4 +1,4 @@
-# read and visualize data for Kolmogorov flow
+# read and visualize data for Kolmogorov flow, based on the vorticity field
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -219,107 +219,28 @@ T = 5000
 dt =.01
 # t1 = np.arange(0,T,dt)
 
-fln = 'Kolmogorov_Re' + str(Re) + '_T' + str(T) + '_DT01_fourier_ready.h5'
+fln = 'Kolmogorov_Re' + str(Re) + '_T' + str(T) + '_DT01_vort.h5'
 hf = h5py.File(fln, 'r')
 t = np.array(hf.get('t'))
-# N2 = np.array(hf.get('/N'))
-# kx = np.array(hf.get('/kx'))
-# x = np.array(hf.get('/x'))
-# xx = np.array(hf.get('/xx'))
-# yy = np.array(hf.get('/yy'))
-# vort = np.array(hf.get('/vort'))
-# u = np.array(hf.get('/u'))
-# v = np.array(hf.get('/v'))
-Diss = np.array(hf.get('/Diss'))
-# a_10 = np.array(hf.get('/four_a10'))
-I = np.array(hf.get('/I'))
-four_uu_real = np.array(hf.get('/four_uu_real'))
-four_uu_imag = np.array(hf.get('/four_uu_imag'))
+vort = np.array(hf.get('/vort'))
+Diss = np.array(hf.get('/Dissip'))
+I = np.array(hf.get('/E'))
 
 hf.close()
 
-four_uu = np.sqrt(four_uu_real**2+four_uu_imag**2)
-# four_uu = abs(four_uu_imag)
-
-# D = np.array(D)
-# plt.figure()
-# plt.rc('text', usetex=True)
-# plt.rc('font', family='serif', size=12)
-# plt.plot(t,D)
-# plt.xlabel("t")
-# plt.ylabel("D")
-# plt.xlim(0,T)
-
-########## getting the parameter that we want () ############
-# is this the Fourier mode? I think so
-# plt.figure()
-# plt.rc('text', usetex=True)
-# plt.rc('font', family='serif', size=12)
-# plt.plot(I,D)
-# plt.xlabel("I")
-# plt.ylabel("D")
-
-# plt.figure()
-# plt.plot(t,I)
-#
-# plt.figure()
-# plt.plot(t,Diss)
-
-# plt.show()
-
-# plot the quantity of interest - absolute value of Fourier mode a(1,0)
-# plt.figure()
-# plt.rc('text', usetex=True)
-# plt.rc('font', family='serif', size=12)
-# plt.plot(t,a_10)
-# plt.xlabel("t")
-# plt.ylabel("$|a(1,0)|$")
-# plt.xlim(0,T)
-
-type='kolmogorov'
+type='kolmogorov_kD'
 
 Diss = Diss.reshape((len(Diss),1))
 I = I.reshape((len(Diss),1))
 x = np.append(Diss, I, axis=1)      # same as in Farazmand and sapsis - this plus triad with k_f = 4, where this is the mean flow
-# x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)
-# x = np.append(x,abs(four_uu_real[1,0,:]).reshape(len(t),1), axis=1)
-# x = np.append(x,abs(four_uu_imag[1,0,:]).reshape(len(t),1), axis=1)
-x = np.append(x,four_uu[0,4,:].reshape(len(t),1), axis=1)
-# x = np.append(x,four_uu[1,4,:].reshape(len(t),1), axis=1) # this is the faulty one
-# for i in range(0,9):
-#     for j in range(0,9):
-#         x = np.append(x,four_uu[i,j,:].reshape(len(t),1), axis=1)
-# extr_dim = np.arange(0,x.shape[1]) #np.arange(0,83)    # define both dissipation and energy as the extreme dimensions
-extr_dim =[0,1]
-# np.save('t', t)
-# np.save('D', Diss)
-# np.save('k', I)
-# fig, axs = plt.subplots(4)
-# plt.subplot(4,1,1)
-# plt.plot(t,x[:,0])
-# plt.xlim([0,T])
-# plt.ylabel("D")
-# plt.xlabel("t")
-# plt.subplot(4,1,2)
-# plt.plot(t,x[:,1])
-# plt.xlim([0,T])
-# plt.ylabel("k")
-# plt.xlabel("t")
-# plt.subplot(4,1,3)
-# plt.plot(t,x[:,2])
-# plt.plot(t,x[:,5], '--')
-# plt.plot(t,x[:,5], ':')
-# plt.xlim([0,T])
-# plt.legend(["|a(1,0)|", "|a(0,4)|", "|a(1,4)|"])
-# plt.xlabel("t")
-# plt.subplot(4,1,4)
-# plt.plot(t,x[:,3], '--')
-# plt.plot(t,x[:,4], '-.')
-# plt.xlim([0,T])
-# plt.legend(["|Re(a(1,0))|", "|Im(a(1,0))|"])
-# plt.xlabel("t")
-# plt.show()
+samples = [8]  #indexes of vorticity samples - maybe make this more automatic? [2,8,14]
+for i in samples:
+    # for j in samples:
+    x = np.append(x,vort[i,i,:].reshape(len(t),1), axis=1) # this is the faulty one
 
+
+# extr_dim = np.arange(0,x.shape[1]) #np.arange(0,83)    # define both dissipation and energy as the extreme dimensions
+extr_dim=[0,1]  #only dissipation and energy
 
 # Tesselation
 M = 20
@@ -332,13 +253,14 @@ clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_c
 plt.show()
 calculate_statistics(extr_dim, clusters, P, T)
 
+
 x_tess,temp = tesselate(x,M,extr_dim,4)    #tesselate function without extreme event id
 x_tess = tess_to_lexi(x_tess, M, x.shape[1])
 x_clusters = data_to_clusters(x_tess, D, x, clusters)
 is_extreme = np.zeros_like(x_clusters)
 for cluster in clusters:
     is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme
-# np.save('k_D_a10_a04_corrected', is_extreme)
+np.save('k_D_vorticity_center', is_extreme)
 
 avg_time, instances, instances_extreme_no_precursor, instances_precursor_no_extreme, instances_precursor_after_extreme = backwards_avg_time_to_extreme(is_extreme,dt)
 print('Average time from precursor to extreme:', avg_time, ' s')

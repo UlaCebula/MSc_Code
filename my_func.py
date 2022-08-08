@@ -160,7 +160,7 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
 
         # show cluster statistics
         min_prob[min_prob==1] = 0# change the probability in extreme clusters to zero so they don't appear in the plots
-        fig, ax = plt.subplots(figsize=(12,7))
+        fig, ax = plt.subplots(figsize=(12,8))
         ax.bar(numbers, min_prob, color=color_pal)
         ax.grid('minor')
         temp_labels = ax.containers[0]
@@ -170,12 +170,12 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
             if h != 0:  # anything that have a height of 0 will not be annotated
                 ax.text(x + 0.5 * w, y + h, '%0.2e' % h, va='bottom', ha='center')
         # ax.bar_label(ax.containers[0], label_type='edge')
-        ax.set_xlabel("Cluster")
-        ax.set_ylabel("Probability to extreme")
+        ax.set_xlabel("Cluster", fontsize=20)
+        ax.set_ylabel("Probability of transitioning to extreme", fontsize=20)
         plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
-        plt.savefig('stat_prob.png')
+        plt.savefig('stat_prob.pdf')
 
-        fig, ax = plt.subplots(figsize=(12,7))
+        fig, ax = plt.subplots(figsize=(12,8))
         ax.bar(numbers, np.round(min_time,2), color=color_pal)
         ax.grid('minor')
         temp_labels = ax.containers[0]
@@ -185,12 +185,12 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
                 if h != 0:  # anything that have a height of 0 will not be annotated
                     ax.text(x + 0.5 * w, y + h, '%0.2f' % h, va='bottom', ha='center')
         # ax.bar_label(temp_labels, label_type='edge')
-        ax.set_xlabel("Cluster")
-        ax.set_ylabel("Average time to extreme [s]")
+        ax.set_xlabel("Cluster", fontsize=20)
+        ax.set_ylabel("Average time to extreme [s]", fontsize=20)
         plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
-        plt.savefig('stat_time.png')
+        plt.savefig('stat_time.pdf')
 
-        fig, ax = plt.subplots(figsize=(12,7))
+        fig, ax = plt.subplots(figsize=(12,8))
         ax.bar(numbers, length, color=color_pal)
         ax.grid('minor')
         temp_labels = ax.containers[0]
@@ -200,50 +200,50 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
             if h != 0:  # anything that have a height of 0 will not be annotated
                 ax.text(x + 0.5 * w, y + h, '%0.0f' % h, va='bottom', ha='center')
         # ax.bar_label(ax.containers[0], label_type='edge')
-        ax.set_xlabel("Cluster")
-        ax.set_ylabel("Length of shortest path to extreme")
+        ax.set_xlabel("Cluster", fontsize=20)
+        ax.set_ylabel("Length of shortest path to extreme", fontsize=20)
         plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
-        plt.savefig('stat_path.png')
+        plt.savefig('stat_path.pdf')
 
     # average time in cluster
-    fig, ax = plt.subplots(figsize=(12,7))
+    fig, ax = plt.subplots(figsize=(12,8))
     ax.bar(numbers, [np.round(cluster.avg_time,2) for cluster in clusters], color=color_pal)
     ax.grid('minor')
     ax.bar_label(ax.containers[0], label_type='edge')
-    ax.set_xlabel("Cluster")
-    ax.set_ylabel("Average time spend in cluster [s]")
+    ax.set_xlabel("Cluster", fontsize=20)
+    ax.set_ylabel("Average time spend in cluster [s]", fontsize=20)
     plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
-    plt.savefig('stat_circ_time.png')
+    plt.savefig('stat_circ_time.pdf')
 
     # percentage of total time spend in cluster
-    fig, ax = plt.subplots(figsize=(12,7))
+    fig, ax = plt.subplots(figsize=(12,8))
     ax.bar(numbers, [np.round((cluster.avg_time*cluster.nr_instances)/T*100,3) for cluster in clusters], color=color_pal)
     ax.grid('minor')
     ax.bar_label(ax.containers[0], label_type='edge')
-    ax.set_xlabel("Cluster")
-    ax.set_ylabel("% time spend in cluster")
+    ax.set_xlabel("Cluster", fontsize=20)
+    ax.set_ylabel("% time spend in cluster", fontsize=20)
     plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
-    plt.savefig('stat_percent_time.png')
+    plt.savefig('stat_percent_time.pdf')
 
     # cluster size (in nodes)
-    fig, ax = plt.subplots(figsize=(12,7))
+    fig, ax = plt.subplots(figsize=(12,8))
     ax.bar(numbers, [cluster.nodes.size for cluster in clusters], color=color_pal)
     ax.grid('minor')
     ax.bar_label(ax.containers[0], label_type='edge')
-    ax.set_xlabel("Cluster")
-    ax.set_ylabel("# nodes in cluster")
+    ax.set_xlabel("Cluster", fontsize=20)
+    ax.set_ylabel("# nodes in cluster", fontsize=20)
     plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
-    plt.savefig('stat_nr_nodes.png')
+    plt.savefig('stat_nr_nodes.pdf')
 
     # number of instances in whole data frame
-    fig, ax = plt.subplots(figsize=(12,7))
+    fig, ax = plt.subplots(figsize=(12,8))
     ax.bar(numbers, [cluster.nr_instances for cluster in clusters], color=color_pal)
     ax.grid('minor')
     ax.bar_label(ax.containers[0], label_type='edge')
-    ax.set_xlabel("Cluster")
-    ax.set_ylabel("# instances in time series")
+    ax.set_xlabel("Cluster", fontsize=20)
+    ax.set_ylabel("# instances in time series", fontsize=20)
     plt.subplots_adjust(left=0.06, bottom=0.06, right=0.99, top=0.99)
-    plt.savefig('stat_nr_instances.png')
+    plt.savefig('stat_nr_instances.pdf')
 
     # write statistics to csv file
     with open('cluster_stat.csv', 'w') as file:
@@ -262,7 +262,7 @@ def plot_cluster_statistics(clusters, T, min_prob=None, min_time=None, length=No
                 writer.writerow(csv_data)
     return 1
 
-def backwards_avg_time_to_extreme(is_extreme,dt, clusters):
+def backwards_avg_time_to_extreme(is_extreme,dt):
     ''' Finds average time of transitioning to precursor cluster that then goes to extreme cluster, looking backwards from extreme cluster
 
     :param is_extreme: vector defining which clusters are extreme (value 2) and which are precursors (value 1)
@@ -277,6 +277,7 @@ def backwards_avg_time_to_extreme(is_extreme,dt, clusters):
     time = 0
     instances_extreme_no_precursor=0
     instances_precursor_no_extreme=0
+    instances_precursor_after_extreme=0
 
     for i in range(len(extreme_events_t)-1):    # look at all extreme events
         # we are looking only at the first one step of each instance
@@ -306,9 +307,15 @@ def backwards_avg_time_to_extreme(is_extreme,dt, clusters):
             if is_extreme[temp_prec_t+1]!=2:
                 instances_precursor_no_extreme+=1
 
+        # look at first instance to see if there is an extreme event before
+        if i==len(precursors_t)-1 or (precursors_t[i+1]==precursors_t[i]+1 and precursors_t[i-1]!=precursors_t[i]-1):
+            temp_prec_t_first = precursors_t[i] #first step of precursor step
+            if is_extreme[temp_prec_t_first-1]==2:
+                instances_precursor_after_extreme+=1
+
     avg_to_extreme = time/instances_extreme_with_precursor
 
-    return avg_to_extreme, instances_extreme_with_precursor, instances_extreme_no_precursor, instances_precursor_no_extreme
+    return avg_to_extreme, instances_extreme_with_precursor, instances_extreme_no_precursor, instances_precursor_no_extreme, instances_precursor_after_extreme
 
 def calculate_statistics(extr_dim, clusters, P, T):
     ''' Function for calculating the extreme event statistics and plotting all of the statistics
@@ -550,7 +557,7 @@ def to_graph(P):
                 P_graph.add_edge(i, j, weight=P[i, j])
     return P_graph
 
-def plot_graph(P_graph, labels):
+def plot_graph(P_graph, labels, type):
     """Function for plotting the graph representation of the probability matrix
 
     :param P_graph: graph form of the probability matrix
@@ -559,10 +566,12 @@ def plot_graph(P_graph, labels):
     """
     # Visualize graph
     plt.figure()
-    # nx.draw(P_graph,with_labels=True)
-    nx.draw_spring(P_graph,with_labels=labels)
-    # nx.draw_kamada_kawai(P_graph,with_labels=False)
-    # nx.draw_kamada_kawai(P_graph,with_labels=True)
+    if type=='sine':
+        nx.draw_kamada_kawai(P_graph, with_labels=labels)
+    else:
+        # nx.draw(P_graph,with_labels=True)
+        nx.draw_spring(P_graph,with_labels=labels)
+
     return 1
 
 def to_graph_sparse(P):
@@ -610,7 +619,7 @@ def probability(tess_ind, type):
     u_1, index_1, counts_1 = np.unique(tess_ind, axis=0, return_index=True,
                                                 return_counts=True)  # sorted points that are occupied at some point
     if type=='classic': #account for the last point
-        corr_point = tess_ind[-1]   #coreection point
+        corr_point = tess_ind[-1]   #correction point
     elif type=='backwards': #account for the first point
         corr_point = tess_ind[0]
 
@@ -812,16 +821,16 @@ def plot_phase_space(x, type):
         # plt.title("Dissipation vs energy")
         plt.grid('minor', 'both')
         plt.minorticks_on()
-        plt.ylabel("D")
-        plt.xlabel("k")
+        plt.ylabel("D", fontsize=20)
+        plt.xlabel("k", fontsize=20)
 
     if type=='sine':
         plt.figure(figsize=(7, 7))
         plt.plot(x[:,0],x[:,1])
         plt.grid('minor', 'both')
         plt.minorticks_on()
-        plt.xlabel("$x$")
-        plt.ylabel("$y$")
+        plt.xlabel("$x$", fontsize = 20)
+        plt.ylabel("$y$", fontsize = 20)
 
     if type=='LA':
         ax = plt.figure().add_subplot(projection='3d')
@@ -836,16 +845,16 @@ def plot_phase_space(x, type):
         plt.scatter(x[:, 0], x[:, 3])
         plt.grid('minor', 'both')
         plt.minorticks_on()
-        plt.ylabel("$x_4$")
-        plt.xlabel("$x_1$")
+        plt.ylabel("$x_4$", fontsize=20)
+        plt.xlabel("$x_1$", fontsize=20)
 
     if type=='PM':
         plt.figure(figsize=(6,6))
         plt.plot(x[:,2], x[:,4])
         plt.grid('minor', 'both')
         plt.minorticks_on()
-        plt.ylabel("$x_5$")
-        plt.xlabel("$x_3$")
+        plt.ylabel("$x_5$", fontsize=20)
+        plt.xlabel("$x_3$", fontsize=20)
 
     return 1
 
@@ -942,44 +951,56 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
             ax.scatter(x[tess_ind_cluster==i,0], x[tess_ind_cluster==i,1], x[tess_ind_cluster==i,2])  # I should relate somehow s to N and the fig size
             if i in extr_clusters:
-                ax.text(coord_centers[i,0], coord_centers[i,1], coord_centers[i,2], str(i),color='r')  # numbers of clusters
+                t = ax.text(coord_centers[i,0], coord_centers[i,1], coord_centers[i,2], str(i),color='r', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                ax.text(coord_centers[i,0], coord_centers[i,1], coord_centers[i,2], str(i))  # numbers of clusters
+                t = ax.text(coord_centers[i,0], coord_centers[i,1], coord_centers[i,2], str(i), color='white', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
         ax.set_xlabel("Roll & streak")
         ax.set_ylabel("Mean shear")
         ax.set_zlabel("Burst")
         ax.set_title("Self-sustaining process")
 
-        if type == 'kolmogorov':
-            plt.figure()
-            ax = plt.axes(projection='3d')
-            for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
-                ax.scatter(x[tess_ind_cluster == i, 0], x[tess_ind_cluster == i, 1],
-                           x[tess_ind_cluster == i, 2])  # I should relate somehow s to N and the fig size
-                if i in extr_clusters:
-                    ax.text(coord_centers[i, 0], coord_centers[i, 1], coord_centers[i, 2], str(i),
-                            color='r')  # numbers of clusters
-                else:
-                    ax.text(coord_centers[i, 0], coord_centers[i, 1], coord_centers[i, 2],
-                            str(i))  # numbers of clusters
-            ax.set_xlabel("D")
-            ax.set_ylabel("k")
-            ax.set_zlabel("|a(1,4)|")
-            ax.set_title("Self-sustaining process")
+    if type == 'kolmogorov':
+        plt.figure()
+        ax = plt.axes(projection='3d')
+        for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
+            # if i==4:
+            #     ax.scatter(x[tess_ind_cluster == i, 0], x[tess_ind_cluster == i, 1], x[tess_ind_cluster == i, 2],
+            #                color='red')  # I should relate somehow s to N and the fig size
+            # else:
+            ax.scatter(x[tess_ind_cluster == i, 0], x[tess_ind_cluster == i, 1], x[tess_ind_cluster == i, 2],
+                           color='#1f77b4')  # I should relate somehow s to N and the fig size
+            # ax.scatter(x[tess_ind_cluster == i, 0], x[tess_ind_cluster == i, 1], x[tess_ind_cluster == i, 2],color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
+            # if i in extr_clusters:
+            #     t = ax.text(coord_centers[i, 0], coord_centers[i, 1], coord_centers[i, 2], str(i),
+            #             color='r', backgroundcolor='1')  # numbers of clusters
+            #     t.set_bbox(dict(facecolor='black', alpha=0.35))
+            # else:
+            #     t = ax.text(coord_centers[i, 0], coord_centers[i, 1], coord_centers[i, 2],
+            #             str(i), color='white', backgroundcolor='1')  # numbers of clusters
+            #     t.set_bbox(dict(facecolor='black', alpha=0.35))
+        ax.set_xlabel("D")
+        ax.set_ylabel("k")
+        ax.set_zlabel("|a(1,4)|")
 
     if type=='MFE_dissipation' or type=='kolmogorov_kD':
         plt.figure(figsize=(7, 7))
         plt.axhline(y=np.mean(x[:,0])+nr_dev*np.std(x[:, 0]), color='r', linestyle='--') # plot horizontal cutoff
         plt.axvline(x=np.mean(x[:, 1]) + nr_dev*np.std(x[:, 1]), color='r', linestyle='--')  # plot horizontal cutoff
         for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
-            plt.scatter(x[tess_ind_cluster == i,1],
-                        x[tess_ind_cluster == i,0], color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
+            # if i==4:
+            #     plt.scatter(x[tess_ind_cluster == i,1], x[tess_ind_cluster == i,0], color='red')  # I should relate somehow s to N and the fig size
+            #
+            # else:
+            plt.scatter(x[tess_ind_cluster == i,1], x[tess_ind_cluster == i,0], color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
 
-            if i in extr_clusters:     # if cluster is extreme - plot number in red
-                plt.text(coord_centers[i,1], coord_centers[i,0], str(i),color='r')  # numbers of clusters
-            else:
-                plt.text(coord_centers[i,1], coord_centers[i,0], str(i))  # numbers of clusters
-        plt.grid('minor', 'both')
+            # if i in extr_clusters:     # if cluster is extreme - plot number in red
+            #     t = plt.text(coord_centers[i,1], coord_centers[i,0], str(i),color='r', backgroundcolor='1')  # numbers of clusters
+            #     t.set_bbox(dict(facecolor='black', alpha=0.35))
+            # else:
+            #     t = plt.text(coord_centers[i,1], coord_centers[i,0], str(i),color='white', backgroundcolor='1')  # numbers of clusters
+            #     t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.minorticks_on()
         plt.xlabel("k")
         plt.ylabel("D")
@@ -992,9 +1013,11 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
             plt.scatter(x[tess_ind_cluster == i,0],
                         x[tess_ind_cluster == i,1], color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
             if i in extr_clusters:      # if cluster is extreme - plot number in red
-                plt.text(coord_centers[i,0], coord_centers[i,1], str(i),color='r')  # numbers of clusters
+                t = plt.text(coord_centers[i,0], coord_centers[i,1], str(i),color='r', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                plt.text(coord_centers[i,0], coord_centers[i,1], str(i))  # numbers of clusters
+                t = plt.text(coord_centers[i,0], coord_centers[i,1], str(i), color='white',backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.xlabel("x")
@@ -1006,9 +1029,11 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
             ax.scatter3D(x[tess_ind_cluster==i,0], x[tess_ind_cluster==i,1], x[tess_ind_cluster==i,2],color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
             if i in extr_clusters:
-                ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i), color='r')  # numbers of clusters
+                t = ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i), color='r', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i))  # numbers of clusters
+                t = ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i),color='white', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.set_zlabel("z")
@@ -1021,7 +1046,7 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
             if i in extr_clusters:  # if cluster is extreme - plot number in red
                 plt.text(coord_centers[i, 0], coord_centers[i, 3], str(i), color='r')  # numbers of clusters
             else:
-                plt.text(coord_centers[i, 0], coord_centers[i, 3], str(i))  # numbers of clusters
+                plt.text(coord_centers[i, 0], coord_centers[i, 3], str(i), color='white')  # numbers of clusters
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.ylabel("$x_4$")
@@ -1033,9 +1058,11 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
             plt.scatter(x[tess_ind_cluster == i, 2],
                         x[tess_ind_cluster == i, 4], color=palette.colors[i, :])  # I should relate somehow s to N and the fig size
             if i in extr_clusters:  # if cluster is extreme - plot number in red
-                plt.text(coord_centers[i, 2], coord_centers[i, 4], str(i), color='r')  # numbers of clusters
+                t = plt.text(coord_centers[i, 2], coord_centers[i, 4], str(i), color='r', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                plt.text(coord_centers[i, 2], coord_centers[i, 4], str(i))  # numbers of clusters
+                t = plt.text(coord_centers[i, 2], coord_centers[i, 4], str(i), color='white', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.ylabel("$x_5$")
@@ -1064,13 +1091,17 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
         for i in range(len(x[:,0])): #for each unique point
             loc_clust = tess_ind_cluster[indices[i]]
             loc_col = palette.colors[loc_clust,:]
+            # if i==4:
+            #     loc_col='red'
             plt.scatter(x[i,1], x[i,0], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
 
-        for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
-            if i in extr_clusters:
-                plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i),color='r')  # numbers of clusters
-            else:
-                plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i))  # numbers of clusters
+        # for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
+        #     if i in extr_clusters:
+        #         t = plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i),color='r', backgroundcolor='1')  # numbers of clusters
+        #         t.set_bbox(dict(facecolor='black', alpha=0.35))
+        #     else:
+        #         t = plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i), color='white', backgroundcolor='1')  # numbers of clusters
+        #         t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.xlabel("k")
@@ -1087,14 +1118,18 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
             loc_col = palette.colors[loc_clust, :]
             # if loc_clust==4:
             #     loc_col='red'
+            # else:
+            #     loc_col = '#1f77b4'
             ax.scatter3D(x[i, 0], x[i, 1], x[i,2],color=loc_col)  # I should relate somehow s to N and the fig size
 
         for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
             if i in extr_clusters:
-                ax.text(coord_centers_tess[i, 0], coord_centers_tess[i, 1], coord_centers_tess[i, 2], str(i),
-                         color='r')  # numbers of clusters
+                t = ax.text(coord_centers_tess[i, 0], coord_centers_tess[i, 1], coord_centers_tess[i, 2], str(i),
+                         color='r', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                ax.text(coord_centers_tess[i, 0], coord_centers_tess[i, 1], coord_centers_tess[i, 2], str(i))  # numbers of clusters
+                t = ax.text(coord_centers_tess[i, 0], coord_centers_tess[i, 1], coord_centers_tess[i, 2], str(i), color='white', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.grid('minor', 'both')
         plt.minorticks_on()
         ax.set_xlabel("D")
@@ -1113,9 +1148,11 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
 
         for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
             if i in extr_clusters:
-                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,1], str(i),color='r')  # numbers of clusters
+                t = plt.text(coord_centers_tess[i,0], coord_centers_tess[i,1], str(i),color='r', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,1], str(i))  # numbers of clusters
+                t = plt.text(coord_centers_tess[i,0], coord_centers_tess[i,1], str(i), color='white', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.xlabel("x")
@@ -1135,7 +1172,7 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
             if i in extr_clusters:
                 plt.text(coord_centers_tess[i,0], coord_centers_tess[i,3], str(i),color='r')  # numbers of clusters
             else:
-                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,3], str(i))  # numbers of clusters
+                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,3], str(i), color='white')  # numbers of clusters
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.ylabel("$x_4$")
@@ -1154,13 +1191,33 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
 
         for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
             if i in extr_clusters:
-                plt.text(coord_centers_tess[i, 2], coord_centers_tess[i, 4], str(i), color='r')  # numbers of clusters
+                t = plt.text(coord_centers_tess[i, 2], coord_centers_tess[i, 4], str(i), color='r', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                plt.text(coord_centers_tess[i, 2], coord_centers_tess[i, 4], str(i))  # numbers of clusters
+                t = plt.text(coord_centers_tess[i, 2], coord_centers_tess[i, 4], str(i), color='white', backgroundcolor='1')  # numbers of clusters
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.ylabel("$x_5$")
         plt.xlabel("$x_3$")
+
+        if type == 'LA':
+            plt.figure()
+            ax = plt.axes(projection='3d')
+            for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
+                ax.scatter3D(x[tess_ind_cluster == i, 0], x[tess_ind_cluster == i, 1], x[tess_ind_cluster == i, 2],
+                             color=palette.colors[i, :])  # I should relate somehow s to N and the fig size
+                if i in extr_clusters:
+                    t = ax.text(coord_centers[i, 0], coord_centers[i, 1], coord_centers[i, 2], str(i), color='r',
+                                backgroundcolor='1')  # numbers of clusters
+                    t.set_bbox(dict(facecolor='black', alpha=0.35))
+                else:
+                    t = ax.text(coord_centers[i, 0], coord_centers[i, 1], coord_centers[i, 2], str(i), color='white',
+                                backgroundcolor='1')  # numbers of clusters
+                    t.set_bbox(dict(facecolor='black', alpha=0.35))
+            ax.set_xlabel("x")
+            ax.set_ylabel("y")
+            ax.set_zlabel("z")
 
     return 1
 
@@ -1218,41 +1275,41 @@ def plot_time_series(x,t, type):
         plt.subplot(2, 1, 1)
         plt.plot(t, x[:, 0])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("D")
-        plt.xlabel("t")
+        plt.ylabel("D", fontsize=20)
+        plt.xlabel("t", fontsize=20)
         plt.subplot(2, 1, 2)
         plt.plot(t, x[:, 1])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("k")
-        plt.xlabel("t")
+        plt.ylabel("k", fontsize=20)
+        plt.xlabel("t", fontsize=20)
 
     if type=='sine':
         fig, axs = plt.subplots(2)
-        fig.suptitle("Dynamic behavior of the sine wave")
+        # fig.suptitle("Dynamic behavior of the sine wave")
         plt.subplot(2,1,1)
         plt.plot(t, x[:,0])
-        plt.ylabel("$x$")
-        plt.xlabel("t")
+        plt.ylabel("$x$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
         plt.subplot(2,1,2)
         plt.plot(t, x[:,1])
-        plt.ylabel("$y$")
-        plt.xlabel("t")
+        plt.ylabel("$y$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
 
     if type=='LA':
         fig, axs = plt.subplots(3)
         fig.suptitle("Dynamic behavior of the Lorenz Attractor")
         plt.subplot(3,1,1)
         plt.plot(t, x[:,0])
-        plt.ylabel("$x$")
-        plt.xlabel("t")
+        plt.ylabel("$x$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
         plt.subplot(3,1,2)
         plt.plot(t, x[:,1])
-        plt.ylabel("$y$")
-        plt.xlabel("t")
+        plt.ylabel("$y$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
         plt.subplot(3,1,3)
         plt.plot(t, x[:,2])
-        plt.ylabel("$z$")
-        plt.xlabel("t")
+        plt.ylabel("$z$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
 
     if type=='CDV':
 
@@ -1261,18 +1318,18 @@ def plot_time_series(x,t, type):
         plt.subplot(3,1,1)
         plt.plot(t, x[:,0])
         plt.xlim([t[0],t[-1]])
-        plt.ylabel("$x_1$")
-        plt.xlabel("t")
+        plt.ylabel("$x_1$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
         plt.subplot(3,1,2)
         plt.plot(t, x[:,1])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("$x_2$")
-        plt.xlabel("t")
+        plt.ylabel("$x_2$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
         plt.subplot(3,1,3)
         plt.plot(t, x[:,2])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("$x_3$")
-        plt.xlabel("t")
+        plt.ylabel("$x_3$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
 
         fig, axs = plt.subplots(3)
         fig.suptitle("Dynamic behavior of the CDV flow")
@@ -1280,39 +1337,39 @@ def plot_time_series(x,t, type):
         plt.subplot(3, 1, 1)
         plt.plot(t, x[:, 3])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("$x_4$")
-        plt.xlabel("t")
+        plt.ylabel("$x_4$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
         plt.subplot(3, 1, 2)
         plt.plot(t, x[:, 4])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("$x_5$")
-        plt.xlabel("t")
+        plt.ylabel("$x_5$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
         plt.subplot(3, 1, 3)
         plt.plot(t, x[:, 5])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("$x_6$")
-        plt.xlabel("t")
+        plt.ylabel("$x_6$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
 
     if type=='PM':
         # Visualize dataset
         fig, axs = plt.subplots(3)
-        fig.suptitle("Dynamic behavior of the PM flow")
+        # fig.suptitle("Dynamic behavior of the PM flow")
 
         plt.subplot(3,1,1)
         plt.plot(t, x[:,0])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("$x_1$")
-        plt.xlabel("t")
+        plt.ylabel("$x_1$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
         plt.subplot(3,1,2)
         plt.plot(t, x[:,1])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("$x_2$")
-        plt.xlabel("t")
+        plt.ylabel("$x_2$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
         plt.subplot(3,1,3)
         plt.plot(t, x[:,2])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("$x_3$")
-        plt.xlabel("t")
+        plt.ylabel("$x_3$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
 
         fig, axs = plt.subplots(2)
         fig.suptitle("Dynamic behavior of the PM flow")
@@ -1320,13 +1377,13 @@ def plot_time_series(x,t, type):
         plt.subplot(2,1,1)
         plt.plot(t, x[:,3])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("$x_4$")
-        plt.xlabel("t")
+        plt.ylabel("$x_4$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
         plt.subplot(2,1,2)
         plt.plot(t, x[:,4])
         plt.xlim([t[0], t[-1]])
-        plt.ylabel("$x_5$")
-        plt.xlabel("t")
+        plt.ylabel("$x_5$", fontsize=20)
+        plt.xlabel("t", fontsize=20)
 
     return 1
 
@@ -1472,9 +1529,9 @@ def extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_
     if plotting:
         if dim<4:  # the matrix will be too big
             # Visualize unclustered graph
-            plot_graph(P_graph,False)
+            plot_graph(P_graph,False,type)
             # Visualize probability matrix
-            # plot_prob_matrix(P.toarray())
+            plot_prob_matrix(P.toarray())
 
     # plt.show()
 
@@ -1505,7 +1562,7 @@ def extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_
 
     if plotting:
         # Visualize clustered graph
-        plot_graph(P_graph_old,True)
+        plot_graph(P_graph_old,True, type)
 
         # color palette - linear blue
         palette = plt.get_cmap('viridis', D_nodes_in_clusters.shape[1])
