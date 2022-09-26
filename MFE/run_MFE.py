@@ -284,18 +284,28 @@ filename = 'MFE_Re600'
 dt = 0.25
 t,x = MFE_read_DI(filename, dt)
 extr_dim = [0,1]    # define both dissipation and energy as the extreme dimensions
-np.save('t',t)
-np.save('k_D',x)
+# np.save('t',t)
+# np.save('k_D',x)
+
+# # actual extreme
+# actual = np.zeros_like(t)
+# m = [np.mean(x[:, 0]), np.mean(x[:, 1])]   # mean of chosen parameter
+# dev = [np.std(x[:,0]), np.std(x[:,1])]
+# for i in range(len(t)):
+#     if abs(x[i,0])>=m[0]+7*dev[0] and abs(x[i,1])>=m[1]+7*dev[1]:
+#         actual[i]=2
+# np.save('actual_extreme_other',actual)
+
 # Tesselation
 M = 20
 
-plotting = True
-min_clusters=30 #20
+plotting = False
+min_clusters = 20
 max_it=10
 
 clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
 calculate_statistics(extr_dim, clusters, P, t[-1])
-plt.show()
+# plt.show()
 
 x_tess,temp = tesselate(x,M,extr_dim,7)    #tesselate function without extreme event id
 x_tess = tess_to_lexi(x_tess, M, 2)
@@ -303,8 +313,8 @@ x_clusters = data_to_clusters(x_tess, D, x, clusters)
 is_extreme = np.zeros_like(x_clusters)
 for cluster in clusters:
     is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme
-
 colors = ['#1f77b4', '#ff7f0e', '#d62728']     # blue, orange, red
+
 
 fig, axs = plt.subplots(2)
 plt.subplot(2, 1, 1)

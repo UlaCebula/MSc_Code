@@ -245,14 +245,19 @@ extr_dim=[0,1]  #only dissipation and energy
 # Tesselation
 M = 20
 
+plt.figure()
+plt.plot(t, x[:,0])
+plt.xlabel("$\omega$")
+plt.ylabel("$\omega$", size=20)
+plt.show()
+
 plotting = True
 min_clusters=30 #20
 max_it=10
 
 clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 4,plotting, False)
-plt.show()
 calculate_statistics(extr_dim, clusters, P, T)
-
+plt.show()
 
 x_tess,temp = tesselate(x,M,extr_dim,4)    #tesselate function without extreme event id
 x_tess = tess_to_lexi(x_tess, M, x.shape[1])

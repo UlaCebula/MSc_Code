@@ -27,8 +27,8 @@ def sine_data_generation(t0, tf, dt, nt_ex, rand_threshold=0.9, rand_amplitude=2
     for i in range(len(t)):
         if u1[i]>=0.99 and abs(u2[i])<=0.015:
             if np.random.rand() >=rand_threshold:
-                u1[i:i+nt_ex] = rand_scalar*u1[i:i+nt_ex]+rand_amplitude
-                u2[i:i+nt_ex] = rand_scalar*u2[i:i+nt_ex]+rand_amplitude
+                u1[i:i+nt_ex] = rand_scalar*u1[i:i+nt_ex]+np.linspace(rand_amplitude/2, rand_amplitude, num=nt_ex)
+                u2[i:i+nt_ex] = rand_scalar*u2[i:i+nt_ex]+np.linspace(rand_amplitude/2, rand_amplitude, num=nt_ex) #+rand_amplitude
 
     u = np.hstack([np.reshape(u1, (len(t),1)),np.reshape(u2, (len(t),1))])  # combine into one matrix
     return t, u
@@ -49,17 +49,22 @@ rand_scalar = 1
 
 t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
 
+
+# plt.figure()
+# plt.scatter(x[:,0], x[:,1])
+# plt.show()
+
 extr_dim = [0,1]   # define both phase space coordinates as extreme event
 
 # Tesselation
-M = 30
+M = 20
 
-plotting = True
+plotting = False
 min_clusters=15
 max_it=5
-clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 2,plotting, True)
+clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 1.5,plotting, True)
 calculate_statistics(extr_dim, clusters, P, tf)
-plt.show()
+# plt.show()
 
 x_tess,temp = tesselate(x,M,extr_dim,7)    #tesselate function without extreme event id
 x_tess = tess_to_lexi(x_tess, M, 2)
@@ -68,7 +73,7 @@ is_extreme = np.zeros_like(x_clusters)
 for cluster in clusters:
     is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme
 
-avg_time, instances, instances_extreme_no_precursor, instances_precursor_no_extreme = backwards_avg_time_to_extreme(is_extreme,dt, clusters)
+avg_time, instances, instances_extreme_no_precursor, instances_precursor_no_extreme, instances_precursor_after_extreme = backwards_avg_time_to_extreme(is_extreme,dt)
 print('Average time from precursor to extreme:', avg_time, ' s')
 print('Nr times when extreme event had a precursor:', instances)
 print('Nr extreme events without precursors (false negative):', instances_extreme_no_precursor)

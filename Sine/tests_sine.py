@@ -25,8 +25,8 @@ def sine_data_generation(t0, tf, dt, nt_ex, rand_threshold=0.9, rand_amplitude=2
     for i in range(len(t)):
         if u1[i]>=0.99 and abs(u2[i])<=0.015:
             if np.random.rand() >=rand_threshold:
-                u1[i:i+nt_ex] = rand_scalar*u1[i:i+nt_ex]+rand_amplitude
-                u2[i:i+nt_ex] = rand_scalar*u2[i:i+nt_ex]+rand_amplitude
+                u1[i:i+nt_ex] = rand_scalar*u1[i:i+nt_ex]+np.linspace(rand_amplitude/2, rand_amplitude, num=nt_ex) #rand_amplitude
+                u2[i:i+nt_ex] = rand_scalar*u2[i:i+nt_ex]+np.linspace(rand_amplitude/2, rand_amplitude, num=nt_ex) #+rand_amplitude
 
     u = np.hstack([np.reshape(u1, (len(t),1)),np.reshape(u2, (len(t),1))])  # combine into one matrix
     return t, u
@@ -46,16 +46,16 @@ type='sine'
 # M = 20  # number of discretizations in each dimension
 # extr_dim = [0, 1]  # define both phase space coordinates as extreme event
 #
-# plotting=False # do we want to plot everything (otherwise plots only the last plot with extreme event identification)
+# plotting=True # do we want to plot everything (otherwise plots only the last plot with extreme event identification)
 #
 # min_clusters = 15
 # max_it = 5
 #
 # for rand_threshold in rand_threshold_array:
 #     t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
-#     clusters, D, P = extreme_event_identification_process(t, x, M, extr_dim, type, min_clusters, max_it, 'classic', 2, plotting,
+#     clusters, D, P = extreme_event_identification_process(t, x, M, extr_dim, type, min_clusters, max_it, 'classic', 1.5, plotting,
 #                                          False)
-#     calculate_statistics(extr_dim, clusters, P, tf)
+#     # calculate_statistics(extr_dim, clusters, P, tf)
 #     plt.show()
 
 
@@ -64,7 +64,7 @@ type='sine'
 # t0 = 0.0
 # tf = 1000.0
 # dt = 0.01
-# nt_ex_array = [400]  # number of time steps of the extreme event
+# nt_ex_array = [100]  # number of time steps of the extreme event
 #
 # rand_threshold= 0.95
 # rand_amplitude = 2
@@ -79,9 +79,9 @@ type='sine'
 #
 # for nt_ex in nt_ex_array:
 #     t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
-#     clusters, D, P = extreme_event_identification_process(t, x, M, extr_dim, type, min_clusters, max_it, 'classic', 2, plotting,
+#     clusters, D, P = extreme_event_identification_process(t, x, M, extr_dim, type, min_clusters, max_it, 'classic', 1.5, plotting,
 #                                              False)
-#     calculate_statistics(extr_dim, clusters, P, tf)
+#     # calculate_statistics(extr_dim, clusters, P, tf)
 #     plt.show()
 
 # ################################### Increased distance (in phase-space) of the extreme event #################################
@@ -92,7 +92,7 @@ type='sine'
 # nt_ex = 50  # number of time steps of the extreme event
 #
 # rand_threshold= 0.95
-# rand_amplitude_array = [1.2, 1.5, 1.8]
+# rand_amplitude_array = [1.6,1.7,2.8, 3]
 # rand_scalar = 1
 #
 # M = 20  # number of discretizations in each dimension
@@ -105,32 +105,32 @@ type='sine'
 #
 # for rand_amplitude in rand_amplitude_array:
 #     t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
-#     clusters, D, P = extreme_event_identification_process(t, x, M, extr_dim, type, min_clusters, max_it, 'classic', 2, plotting,
+#     clusters, D, P = extreme_event_identification_process(t, x, M, extr_dim, type, min_clusters, max_it, 'classic', 1.5, plotting,
 #                                                  False)
-#     calculate_statistics(extr_dim, clusters, P, tf)
+#     # calculate_statistics(extr_dim, clusters, P, tf)
 #     plt.show()
 
-# ############################## Increased size (in phase-space) of the extreme event #####################################
-# t0 = 0.0
-# tf = 1000.0
-# dt = 0.01
-# nt_ex = 50  # number of time steps of the extreme event
-#
-# rand_threshold= 0.95
-# rand_amplitude_array = [1.2, 1.5, 1.8]
-# rand_scalar = 1
-#
-# M = 20  # number of discretizations in each dimension
-# extr_dim = [0, 1]  # define both phase space coordinates as extreme event
-#
-# min_clusters = 15
-# max_it = 5
-#
-# plotting=True # do we want to plot everything (otherwise plots only the last plot with extreme event identification)
-#
-# for rand_amplitude in rand_amplitude_array:
-#     t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
-#     clusters, D, P = extreme_event_identification_process(t, x, M, extr_dim, type, min_clusters, max_it, 'classic', 2, plotting,
-#                                                  False)
-#     calculate_statistics(extr_dim, clusters, P, tf)
-#     plt.show()
+############################## Increased size (in phase-space) of the extreme event #####################################
+t0 = 0.0
+tf = 1000.0
+dt = 0.01
+nt_ex = 50  # number of time steps of the extreme event
+
+rand_threshold= 0.95
+rand_amplitude = 2
+rand_scalar_array = [0.5,0.8,1,1.5,2]
+
+M = 20  # number of discretizations in each dimension
+extr_dim = [0, 1]  # define both phase space coordinates as extreme event
+
+min_clusters = 15
+max_it = 5
+
+plotting=True # do we want to plot everything (otherwise plots only the last plot with extreme event identification)
+
+for rand_scalar in rand_scalar_array:
+    t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
+    clusters, D, P = extreme_event_identification_process(t, x, M, extr_dim, type, min_clusters, max_it, 'classic', 1.5, plotting,
+                                                 False)
+    # calculate_statistics(extr_dim, clusters, P, tf)
+    plt.show()
