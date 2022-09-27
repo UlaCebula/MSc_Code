@@ -1,5 +1,5 @@
-# script for generating flow data from the Moehlis-Faisst-Eckhardt equations - 9 dimensional
-# Urszula Golyska 2022
+# Script for generating flow data for the Moehlis-Faisst-Eckhardt system
+# Dr Anh Koan Doan with modifications by Urszula Golyska 2022
 
 import numpy as np
 import matplotlib.pyplot as plt

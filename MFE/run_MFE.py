@@ -1,4 +1,4 @@
-# script for calcuations for the Moehlis-Faisst-Eckhardt equations - 9 dimensional
+# Testing the created algorithm - Moehlis-Faisst-Eckhardt case
 # Urszula Golyska 2022
 
 import h5py
@@ -9,9 +9,7 @@ import numpy as np
 def MFE_get_param(alpha, beta, gamma, Re):
     """ Function for calculating the parameters of the MFE system
 
-    :param alpha:
-    :param beta:
-    :param gamma:
+    :param alpha, beta, gamma: parameters of the system
     :param Re: Reynolds number of the system
     :return: returns 10 parameters, zeta and xi1-xi9
     """
@@ -261,85 +259,42 @@ def MFE_read_DI(filename, dt=0.25):
 
 plt.close('all') # close all open figures
 
-# #####BURST#########
-# type='MFE_burst'
-# filename = 'MFE_Re400_T10000.h5'
-# t,u = MFE_read_Fourier(filename)
-#
-# x = MFE_to_burst(u)
-# extr_dim = [2]   # define burst as the extreme dimension
-#
-# # Tesselation
-# M = 20
-#
-# plotting = True
-# min_clusters=30
-# max_it=10
-# clusters,P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
-# plt.show()
 
-####DISSIPATION#########
 type='MFE_dissipation'
 filename = 'MFE_Re600'
 dt = 0.25
-t,x = MFE_read_DI(filename, dt)
-extr_dim = [0,1]    # define both dissipation and energy as the extreme dimensions
-# np.save('t',t)
-# np.save('k_D',x)
+t,x = MFE_read_DI(filename, dt) # read pre-generated data
 
-# # actual extreme
-# actual = np.zeros_like(t)
-# m = [np.mean(x[:, 0]), np.mean(x[:, 1])]   # mean of chosen parameter
-# dev = [np.std(x[:,0]), np.std(x[:,1])]
-# for i in range(len(t)):
-#     if abs(x[i,0])>=m[0]+7*dev[0] and abs(x[i,1])>=m[1]+7*dev[1]:
-#         actual[i]=2
-# np.save('actual_extreme_other',actual)
+extr_dim = [0,1]    # Both turbulent kinetic energy and energy dissipation will be used to define extreme events
+nr_dev = 7
 
-# Tesselation
+# Number of tessellation sections per phase space dimension
 M = 20
 
 plotting = False
 min_clusters = 20
-max_it=10
+max_it = 10
 
-clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
+# Tessellating and clustering loop
+clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', nr_dev,plotting, False)
+
+# Calculate the statistics of the identified clusters
 calculate_statistics(extr_dim, clusters, P, t[-1])
-# plt.show()
+plt.show()
 
-x_tess,temp = tesselate(x,M,extr_dim,7)    #tesselate function without extreme event id
-x_tess = tess_to_lexi(x_tess, M, 2)
-x_clusters = data_to_clusters(x_tess, D, x, clusters)
+# Check on "new" data series
+# Here we take the old data series and feed it to the algorithm as if it was new
+x_tess,temp = tesselate(x,M,extr_dim,nr_dev)    # Tessellate data set (without extreme event identification)
+x_tess = tess_to_lexi(x_tess, M, x.shape[1])
+x_clusters = data_to_clusters(x_tess, D, x, clusters)  # Translate data set to already identified clusters
+
+
 is_extreme = np.zeros_like(x_clusters)
 for cluster in clusters:
-    is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme
-colors = ['#1f77b4', '#ff7f0e', '#d62728']     # blue, orange, red
+    is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme # New data series, determining whether the current
+                        # state of the system is extreme (2), precursor (1) or normal state (0)
 
-
-fig, axs = plt.subplots(2)
-plt.subplot(2, 1, 1)
-plt.plot(t,x[:,0])
-plt.ylabel("D")
-plt.xlabel("t")
-
-plt.subplot(2, 1, 2)
-plt.plot(t,x[:,1])
-plt.ylabel("k")
-plt.xlabel("t")
-
-# for i in range(len(t) - 1):
-#     if is_extreme[i]!=is_extreme[i+1]:
-#         loc_col=colors[is_extreme[i+1]]
-#         plt.subplot(2, 1, 1)
-#         plt.axvline(x=t[i+1], color=loc_col, linestyle='--')
-#
-#         plt.subplot(2, 1, 2)
-#         plt.axvline(x=t[i + 1], color=loc_col, linestyle='--')
-
-# plt.show()
-save_file_name = 'MFE_clusters'
-np.save(save_file_name, is_extreme)
-
+# Calculate the false positive and false negative rates
 avg_time, instances, instances_extreme_no_precursor, instances_precursor_no_extreme,instances_precursor_after_extreme = backwards_avg_time_to_extreme(is_extreme,dt)
 print('Average time from precursor to extreme:', avg_time, ' s')
 print('Nr times when extreme event had a precursor:', instances)
@@ -351,44 +306,27 @@ print('Percentage of false positives:', instances_precursor_no_extreme/(instance
 print('Nr precursors following an extreme event:', instances_precursor_after_extreme)
 print('Corrected percentage of false positives:', (instances_precursor_no_extreme-instances_precursor_after_extreme)/(instances+instances_precursor_no_extreme)*100, ' %')
 
-# plt.plot(t[np.where(is_extreme==i)], x[np.where(is_extreme==i),0].reshape(np.size(np.where(is_extreme==i)),1), color=loc_col)
-# plt.figure()
-# for i in range(3):
-#     loc_col = colors[i]
-#     temp_t = t[np.where(is_extreme==i)]
-#     temp_x = x[np.where(is_extreme==i),0].reshape(np.size(np.where(is_extreme==i)),1)
+
+# ################# ALTERNATIVE DATA ANALYSIS ##### BURST #########
+# type='MFE_burst'
+# filename = 'MFE_Re400_T10000.h5'
+# t,u = MFE_read_Fourier(filename)
 #
-#     temp_t0 = 0
-#     for j in range(len(temp_t) - 1):
-#         if temp_t[j + 1] != temp_t[j] + dt:  # if the next time is not also there
-#             plt.plot(temp_t[temp_t0:j], x[temp_t0:j,0], color=loc_col)
-#             temp_t0 = j + 1
+# # Read data
+# x = MFE_to_burst(u)
+# extr_dim = [2]   # Only the value of burst will be used to define extreme events
+# nr_dev = 7
 #
-# plt.show()
+# # Number of tessellation sections per phase space dimension
+# M = 20
 #
+# plotting = True
+# min_clusters = 30
+# max_it = 10
 #
-# ####ADDITIONAL PLOTTING OF TIME SERIES######
-# plt.figure()
-# fig, axs = plt.subplots(2)
+# # Tessellating and clustering loop
+# clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', nr_dev,plotting, False)
 #
-#
-#
-#
-#
-#
-#
-# plt.subplot(2, 1, 1)
-#
-#
-#
-# plt.plot(t, x[:, 0])
-# plt.xlim([t[0], t[-1]])
-# plt.ylabel("D")
-# plt.xlabel("t")
-# plt.subplot(2, 1, 2)
-# plt.plot(t, x[:, 1])
-# plt.xlim([t[0], t[-1]])
-# plt.ylabel("k")
-# plt.xlabel("t")
-#
+# # Calculate the statistics of the identified clusters
+# calculate_statistics(extr_dim, clusters, P, t[-1])
 # plt.show()

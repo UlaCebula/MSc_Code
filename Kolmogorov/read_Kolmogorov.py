@@ -1,4 +1,6 @@
-# read and visualize data for Kolmogorov flow
+# Testing the created algorithm - Kolmogorov flow
+# Urszula Golyska 2022
+# Kol2D_odd class by Dr Anh Khoa Doan
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -211,135 +213,66 @@ class Kol2D_odd(object):
 
 plt.close('all')  # close all open figures
 
-############### Read data ######################
-Re = 40.    # Reynolds number Re=30 has extreme events
-N = 8 # modes (pair)
-n = 4   #what is this???
+# Read pre-generated data
+Re = 40.    # Reynolds number
+N = 8  # modes (pair)
+n = 4
 T = 5000
 dt =.01
-# t1 = np.arange(0,T,dt)
 
-fln = 'Kolmogorov_Re' + str(Re) + '_T' + str(T) + '_DT01_fourier_ready.h5'
+fln = 'Kolmogorov_Re' + str(Re) + '_T' + str(T) + '_DT01_fourier_ready.h5'  # data to read
 hf = h5py.File(fln, 'r')
 t = np.array(hf.get('t'))
-# N2 = np.array(hf.get('/N'))
-# kx = np.array(hf.get('/kx'))
-# x = np.array(hf.get('/x'))
-# xx = np.array(hf.get('/xx'))
-# yy = np.array(hf.get('/yy'))
-# vort = np.array(hf.get('/vort'))
-# u = np.array(hf.get('/u'))
-# v = np.array(hf.get('/v'))
-Diss = np.array(hf.get('/Diss'))
-# a_10 = np.array(hf.get('/four_a10'))
-I = np.array(hf.get('/I'))
-four_uu_real = np.array(hf.get('/four_uu_real'))
-four_uu_imag = np.array(hf.get('/four_uu_imag'))
-
+Diss = np.array(hf.get('/Diss'))    # energy dissipation
+I = np.array(hf.get('/I'))  # turbulent kinetic energy
+four_uu_real = np.array(hf.get('/four_uu_real'))    # Fourier modes of the x component of velocity - real part
+four_uu_imag = np.array(hf.get('/four_uu_imag'))    # Fourier modes of the x component of velocity - imaginary part
 hf.close()
 
-four_uu = np.sqrt(four_uu_real**2+four_uu_imag**2)
-# four_uu = abs(four_uu_imag)
-
-# D = np.array(D)
-# plt.figure()
-# plt.rc('text', usetex=True)
-# plt.rc('font', family='serif', size=12)
-# plt.plot(t,D)
-# plt.xlabel("t")
-# plt.ylabel("D")
-# plt.xlim(0,T)
-
-########## getting the parameter that we want () ############
-# is this the Fourier mode? I think so
-# plt.figure()
-# plt.rc('text', usetex=True)
-# plt.rc('font', family='serif', size=12)
-# plt.plot(I,D)
-# plt.xlabel("I")
-# plt.ylabel("D")
-
-# plt.figure()
-# plt.plot(t,I)
-#
-# plt.figure()
-# plt.plot(t,Diss)
-
-# plt.show()
-
-# plot the quantity of interest - absolute value of Fourier mode a(1,0)
-# plt.figure()
-# plt.rc('text', usetex=True)
-# plt.rc('font', family='serif', size=12)
-# plt.plot(t,a_10)
-# plt.xlabel("t")
-# plt.ylabel("$|a(1,0)|$")
-# plt.xlim(0,T)
+four_uu = np.sqrt(four_uu_real**2+four_uu_imag**2)  # calculate modulus of Fourier modes
 
 type='kolmogorov'
 
 Diss = Diss.reshape((len(Diss),1))
 I = I.reshape((len(Diss),1))
-x = np.append(Diss, I, axis=1)      # same as in Farazmand and sapsis - this plus triad with k_f = 4, where this is the mean flow
-# x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)
-# x = np.append(x,abs(four_uu_real[1,0,:]).reshape(len(t),1), axis=1)
-# x = np.append(x,abs(four_uu_imag[1,0,:]).reshape(len(t),1), axis=1)
-x = np.append(x,four_uu[0,4,:].reshape(len(t),1), axis=1)
-# x = np.append(x,four_uu[1,4,:].reshape(len(t),1), axis=1) # this is the faulty one
-# for i in range(0,9):
-#     for j in range(0,9):
-#         x = np.append(x,four_uu[i,j,:].reshape(len(t),1), axis=1)
-# extr_dim = np.arange(0,x.shape[1]) #np.arange(0,83)    # define both dissipation and energy as the extreme dimensions
-extr_dim =[0,1]
-# np.save('t', t)
-# np.save('D', Diss)
-# np.save('k', I)
-# fig, axs = plt.subplots(4)
-# plt.subplot(4,1,1)
-# plt.plot(t,x[:,0])
-# plt.xlim([0,T])
-# plt.ylabel("D")
-# plt.xlabel("t")
-# plt.subplot(4,1,2)
-# plt.plot(t,x[:,1])
-# plt.xlim([0,T])
-# plt.ylabel("k")
-# plt.xlabel("t")
-# plt.subplot(4,1,3)
-# plt.plot(t,x[:,2])
-# plt.plot(t,x[:,5], '--')
-# plt.plot(t,x[:,5], ':')
-# plt.xlim([0,T])
-# plt.legend(["|a(1,0)|", "|a(0,4)|", "|a(1,4)|"])
-# plt.xlabel("t")
-# plt.subplot(4,1,4)
-# plt.plot(t,x[:,3], '--')
-# plt.plot(t,x[:,4], '-.')
-# plt.xlim([0,T])
-# plt.legend(["|Re(a(1,0))|", "|Im(a(1,0))|"])
-# plt.xlabel("t")
-# plt.show()
+x = np.append(Diss, I, axis=1)    # create matrix for specific parameters of the data series
 
+# Depending on the case - add another parameter
+# x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)     # case 1
+# x = np.append(x,abs(four_uu_real[1,0,:]).reshape(len(t),1), axis=1)   # case 2
+# x = np.append(x,abs(four_uu_imag[1,0,:]).reshape(len(t),1), axis=1)   # case 3
+# x = np.append(x,four_uu[0,4,:].reshape(len(t),1), axis=1)     # case 4
+# x = np.append(x,four_uu[1,4,:].reshape(len(t),1), axis=1)     # case 5
 
-# Tesselation
+extr_dim =[0,1] # Define the first two parameters (k and D) as the coordinates used to define extreme events
+nr_dev = 4
+
+# Number of tessellation sections per phase space dimension
 M = 20
 
 plotting = True
-min_clusters=30 #20
-max_it=10
+min_clusters = 30
+max_it = 10
 
-clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 4,plotting, False)
-plt.show()
+# Tessellating and clustering loop
+clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', nr_dev,plotting, False)
+
+# Calculate the statistics of the identified clusters
 calculate_statistics(extr_dim, clusters, P, T)
+plt.show()
 
-x_tess,temp = tesselate(x,M,extr_dim,4)    #tesselate function without extreme event id
+# Check on "new" data series
+# Here we take the old data series and feed it to the algorithm as if it was new
+x_tess,temp = tesselate(x,M,extr_dim,nr_dev)     # Tessellate data set (without extreme event identification)
 x_tess = tess_to_lexi(x_tess, M, x.shape[1])
-x_clusters = data_to_clusters(x_tess, D, x, clusters)
+x_clusters = data_to_clusters(x_tess, D, x, clusters) # Translate data set to already identified clusters
+
 is_extreme = np.zeros_like(x_clusters)
 for cluster in clusters:
-    is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme
-# np.save('k_D_a10_a04_corrected', is_extreme)
+    is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme # New data series, determining whether the current
+                        # state of the system is extreme (2), precursor (1) or normal state (0)
 
+# Calculate the false positive and false negative rates
 avg_time, instances, instances_extreme_no_precursor, instances_precursor_no_extreme, instances_precursor_after_extreme = backwards_avg_time_to_extreme(is_extreme,dt)
 print('Average time from precursor to extreme:', avg_time, ' s')
 print('Nr times when extreme event had a precursor:', instances)
@@ -351,7 +284,7 @@ print('Nr precursors following an extreme event:', instances_precursor_after_ext
 print('Corrected percentage of false positives:', (instances_precursor_no_extreme-instances_precursor_after_extreme)/(instances+instances_precursor_no_extreme)*100, ' %')
 
 
-# # input other (small) data and analyze it
+# # Check on actual new data series (small data set)
 # T = 5000
 # fln = 'Kolmogorov_Re' + str(Re) + '_T' + str(T) + '_DT01.h5'
 # hf = h5py.File(fln, 'r')
@@ -359,18 +292,20 @@ print('Corrected percentage of false positives:', (instances_precursor_no_extrem
 # Diss_new = np.array(hf.get('/Dissip'))
 # I_new = np.array(hf.get('/E'))
 # hf.close()
+
 # Diss_new = Diss_new.reshape((len(Diss_new),1))
 # I_new = I_new.reshape((len(I_new),1))
 # x_new = np.append(Diss_new, I_new, axis=1)
 #
-# #tesselate the new data
-# x_new_tess,temp= tesselate(x_new,M,[],5)    #tesselate function without extreme event id
+# x_new_tess,temp = tesselate(x_new,M,[],nr_dev)     # Tessellate data set (without extreme event identification)
 # x_new_tess = tess_to_lexi(x_new_tess, M, dim)
 #
-# # cluster affiliation
-# x_new_clusters = data_to_clusters(x_new_tess, D, x_new, clusters)
+# x_new_clusters = data_to_clusters(x_new_tess, D, x_new, clusters) # Translate data set to already identified clusters
 #
-# # show time series with extreme events (real-time)
+
+
+
+# # Additional code to show time series with extreme events (real-time)
 # fig, axs = plt.subplots(2)
 # fig.suptitle("Real-time predictions")
 #
@@ -383,16 +318,16 @@ print('Corrected percentage of false positives:', (instances_precursor_no_extrem
 # axs[1].set_ylabel("extreme")
 # axs[1].set_ylim([-0.5, 2.5])
 #
-# n_skip=10
+# n_skip=10 # skip timesteps for smooth plotting
 # spacing = np.arange(0, len(t_new), n_skip, dtype=int)
 # for i in range(len(spacing)):
 #     if i!=0:
 #         loc_clust = data_to_clusters(x_new_tess[spacing[i]], D, x, clusters)
 #         axs[0].plot([t_new[spacing[i - 1]], t_new[spacing[i]]], [x_new[spacing[i - 1], 0], x_new[spacing[1], 0]], color='blue')
 #
-#         temp2=clusters[x_new_clusters[spacing[i]]].is_extreme
-#         temp = clusters[x_new_clusters[spacing[i-1]]].is_extreme
-#         # probability of transitioning to extreme event (shortest path)    # minimum time to extreme event
+#         temp2 = clusters[x_new_clusters[spacing[i]]].is_extreme   # current state of system
+#         temp = clusters[x_new_clusters[spacing[i-1]]].is_extreme  # state of system in previous time step
+
 #         if temp2==2:
 #             axs[1].plot([t_new[spacing[i-1]], t_new[spacing[i]]], [temp, temp2],color='red')
 #
@@ -401,10 +336,10 @@ print('Corrected percentage of false positives:', (instances_precursor_no_extrem
 #                         [temp,
 #                          temp2], color='orange')
 #         else:
-#             if temp==2:  # if previous was extreme
+#             if temp==2:  # if previous cluster was extreme
 #                 axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
 #                             [temp, temp2], color='red')
-#             elif temp==1:   # if previous was precursor
+#             elif temp==1:   # if previous cluster was precursor
 #                 axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
 #                             [temp, temp2], color='orange')
 #             else:

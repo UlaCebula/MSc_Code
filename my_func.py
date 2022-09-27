@@ -118,7 +118,7 @@ class cluster(object):
         it transitions'''
     def __init__(self, nr, nodes, center_coord,center_coord_tess,avg_time, nr_instances, P, extr_clusters, from_clusters):
         self.nr = nr    # cluster index (staring from 0)
-        self.nodes = nodes  # node/ hypercube - ids in tesselated space
+        self.nodes = nodes  # node/ hypercube - ids in tessellated space
 
         is_extreme = 0  # normal state cluster
         if nr in extr_clusters:
@@ -370,7 +370,7 @@ def tesselate(x,N,ex_dim,nr_dev=7):
     """ Tessellate trajectory defined by data points x in phase space defined by N spaces in each direction
 
     :param x: vector of point phase space coordinates in consequent time steps
-    :param N: number of discretsations of the phase space in each direction
+    :param N: number of discretizations of the phase space in each direction
     :param ex_dim: dimensions used for identifying the extreme events
     :param nr_dev: scalar defining how far away from the mean (in multiples of the standard deviation) will be considered an extreme event
     :return: returns matrix tess_ind which includes the indices of the hypercubes of the subsequent data points and the
@@ -388,7 +388,7 @@ def tesselate(x,N,ex_dim,nr_dev=7):
         point_ind = np.floor(y[k,:]*N).astype(int)  # vector of indices of the given point in all dimensions, rounding down
         point_ind[point_ind==N] = N-1   # for all points located at the end (max) - move them to the last cell
         tess_ind = np.vstack([tess_ind, point_ind])   # translate the points into the indices of the tesselation
-        # (to get the tesselated space, just take the unique rows of tess_ind)
+        # (to get the tessellated space, just take the unique rows of tess_ind)
     m = np.zeros_like(ex_dim,dtype=float)
     dev = np.zeros_like(ex_dim,dtype=float)
 

@@ -96,7 +96,7 @@ for nr_clusters in nr_clusters_vec: # for a certain number of clusters
     # Define color palette for visualizing different clusters
     palette = plt.get_cmap('viridis', D_sparse.shape[1])
 
-    tess_ind_cluster = kmeans.labels_   # translate data points to affiliated cluster uid
+    tess_ind_cluster = kmeans.labels_   # translate data points to affiliated cluster id
 
     # Calculate cluster centers
     coord_clust_centers, coord_clust_centers_tess = cluster_centers(x,tess_ind, tess_ind_cluster, D_sparse,dim)

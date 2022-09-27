@@ -68,7 +68,7 @@ plt.show()
 # Check on "new" data series
 # Here we take the old data series and feed it to the algorithm as if it was new
 x_tess,temp = tesselate(x,M,extr_dim,7)    # Tessellate data set (without extreme event identification)
-x_tess = tess_to_lexi(x_tess, M, 2)
+x_tess = tess_to_lexi(x_tess, M, x.shape[1])
 x_clusters = data_to_clusters(x_tess, D, x, clusters)   # Translate data set to already identified clusters
 
 is_extreme = np.zeros_like(x_clusters)

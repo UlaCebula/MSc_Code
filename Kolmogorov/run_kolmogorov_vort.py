@@ -1,5 +1,6 @@
-# read and visualize data for Kolmogorov flow, based on the vorticity field
-
+# Testing the created algorithm - Kolmogorov flow, based on vorticity measurements
+# Urszula Golyska 2022
+# Kol2D_odd class by Dr Anh Khoa Doan
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
@@ -211,20 +212,19 @@ class Kol2D_odd(object):
 
 plt.close('all')  # close all open figures
 
-############### Read data ######################
-Re = 40.    # Reynolds number Re=30 has extreme events
-N = 8 # modes (pair)
-n = 4   #what is this???
+# Read pre-generated data
+Re = 40.    # Reynolds number
+N = 8   # modes
+n = 4
 T = 5000
 dt =.01
-# t1 = np.arange(0,T,dt)
 
 fln = 'Kolmogorov_Re' + str(Re) + '_T' + str(T) + '_DT01_vort.h5'
 hf = h5py.File(fln, 'r')
 t = np.array(hf.get('t'))
-vort = np.array(hf.get('/vort'))
-Diss = np.array(hf.get('/Dissip'))
-I = np.array(hf.get('/E'))
+vort = np.array(hf.get('/vort'))    # vorticity
+Diss = np.array(hf.get('/Dissip'))  # energy dissipation
+I = np.array(hf.get('/E')) # turbulent kinetic energy
 
 hf.close()
 
@@ -232,41 +232,38 @@ type='kolmogorov_kD'
 
 Diss = Diss.reshape((len(Diss),1))
 I = I.reshape((len(Diss),1))
-x = np.append(Diss, I, axis=1)      # same as in Farazmand and sapsis - this plus triad with k_f = 4, where this is the mean flow
-samples = [8]  #indexes of vorticity samples - maybe make this more automatic? [2,8,14]
-for i in samples:
-    # for j in samples:
-    x = np.append(x,vort[i,i,:].reshape(len(t),1), axis=1) # this is the faulty one
+x = np.append(Diss, I, axis=1)      # create matrix for specific parameters of the data series
+x = np.append(x,vort[8,8,:].reshape(len(t),1), axis=1)  # add vorticity in the middle of the domain
 
+extr_dim=[0,1]  # Define the first two parameters (k and D) as the coordinates used to define extreme events
+nr_dev = 4
 
-# extr_dim = np.arange(0,x.shape[1]) #np.arange(0,83)    # define both dissipation and energy as the extreme dimensions
-extr_dim=[0,1]  #only dissipation and energy
-
-# Tesselation
+# Number of tessellation sections per phase space dimension
 M = 20
 
-plt.figure()
-plt.plot(t, x[:,0])
-plt.xlabel("$\omega$")
-plt.ylabel("$\omega$", size=20)
-plt.show()
-
 plotting = True
-min_clusters=30 #20
-max_it=10
+min_clusters = 30
+max_it = 10
 
-clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 4,plotting, False)
+# Tessellating and clustering loop
+clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', nr_dev,plotting, False)
+
+# Calculate the statistics of the identified clusters
 calculate_statistics(extr_dim, clusters, P, T)
 plt.show()
 
-x_tess,temp = tesselate(x,M,extr_dim,4)    #tesselate function without extreme event id
+# Check on "new" data series
+# Here we take the old data series and feed it to the algorithm as if it was new
+x_tess,temp = tesselate(x,M,extr_dim,4)    # Tessellate data set (without extreme event identification)
 x_tess = tess_to_lexi(x_tess, M, x.shape[1])
-x_clusters = data_to_clusters(x_tess, D, x, clusters)
+x_clusters = data_to_clusters(x_tess, D, x, clusters) # Translate data set to already identified clusters
+
 is_extreme = np.zeros_like(x_clusters)
 for cluster in clusters:
-    is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme
-np.save('k_D_vorticity_center', is_extreme)
+    is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme # New data series, determining whether the current
+                        # state of the system is extreme (2), precursor (1) or normal state (0)
 
+# Calculate the false positive and false negative rates
 avg_time, instances, instances_extreme_no_precursor, instances_precursor_no_extreme, instances_precursor_after_extreme = backwards_avg_time_to_extreme(is_extreme,dt)
 print('Average time from precursor to extreme:', avg_time, ' s')
 print('Nr times when extreme event had a precursor:', instances)
@@ -276,74 +273,3 @@ print('Nr precursors without a following extreme event (false positives):', inst
 print('Percentage of false positives:', instances_precursor_no_extreme/(instances+instances_precursor_no_extreme)*100, ' %')
 print('Nr precursors following an extreme event:', instances_precursor_after_extreme)
 print('Corrected percentage of false positives:', (instances_precursor_no_extreme-instances_precursor_after_extreme)/(instances+instances_precursor_no_extreme)*100, ' %')
-
-
-# # input other (small) data and analyze it
-# T = 5000
-# fln = 'Kolmogorov_Re' + str(Re) + '_T' + str(T) + '_DT01.h5'
-# hf = h5py.File(fln, 'r')
-# t_new = np.array(hf.get('t'))
-# Diss_new = np.array(hf.get('/Dissip'))
-# I_new = np.array(hf.get('/E'))
-# hf.close()
-# Diss_new = Diss_new.reshape((len(Diss_new),1))
-# I_new = I_new.reshape((len(I_new),1))
-# x_new = np.append(Diss_new, I_new, axis=1)
-#
-# #tesselate the new data
-# x_new_tess,temp= tesselate(x_new,M,[],5)    #tesselate function without extreme event id
-# x_new_tess = tess_to_lexi(x_new_tess, M, dim)
-#
-# # cluster affiliation
-# x_new_clusters = data_to_clusters(x_new_tess, D, x_new, clusters)
-#
-# # show time series with extreme events (real-time)
-# fig, axs = plt.subplots(2)
-# fig.suptitle("Real-time predictions")
-#
-# axs[0].set_xlim([t_new[0], t_new[-1]])
-# axs[0].set_xlabel("t")
-# axs[0].set_ylabel("D")
-#
-# # axs[1].set_xlim([t_new[0], t_new[-1]])
-# axs[1].set_xlabel("t")
-# axs[1].set_ylabel("extreme")
-# axs[1].set_ylim([-0.5, 2.5])
-#
-# n_skip=10
-# spacing = np.arange(0, len(t_new), n_skip, dtype=int)
-# for i in range(len(spacing)):
-#     if i!=0:
-#         loc_clust = data_to_clusters(x_new_tess[spacing[i]], D, x, clusters)
-#         axs[0].plot([t_new[spacing[i - 1]], t_new[spacing[i]]], [x_new[spacing[i - 1], 0], x_new[spacing[1], 0]], color='blue')
-#
-#         temp2=clusters[x_new_clusters[spacing[i]]].is_extreme
-#         temp = clusters[x_new_clusters[spacing[i-1]]].is_extreme
-#         # probability of transitioning to extreme event (shortest path)    # minimum time to extreme event
-#         if temp2==2:
-#             axs[1].plot([t_new[spacing[i-1]], t_new[spacing[i]]], [temp, temp2],color='red')
-#
-#         elif temp2==1:
-#             axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
-#                         [temp,
-#                          temp2], color='orange')
-#         else:
-#             if temp==2:  # if previous was extreme
-#                 axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
-#                             [temp, temp2], color='red')
-#             elif temp==1:   # if previous was precursor
-#                 axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
-#                             [temp, temp2], color='orange')
-#             else:
-#                 axs[1].plot([t_new[spacing[i - 1]], t_new[spacing[i]]],
-#                         [temp, temp2], color='green')
-#
-#         # text = fig.text(0.05, 0.03, str(clusters[x_new_clusters[spacing[i]]].prob_to_extreme))
-#         text = fig.text(0.05, 0.01, 'Probability: ' + str(min_prob[clusters[x_new_clusters[spacing[i]]].nr]))
-#         text2 = fig.text(0.05, 0.05, 'Time: ' + str(min_time[clusters[x_new_clusters[spacing[i]]].nr]))
-#         # axs[1].text(0,0,)
-#         axs[1].set_xlim([t_new[spacing[i-1]]-n_skip*10, t_new[spacing[i]]+ n_skip*10])
-#         plt.pause(0.001)
-#         text.remove()
-#         text2.remove()
-# plt.show()

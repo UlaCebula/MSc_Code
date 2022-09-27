@@ -1,4 +1,4 @@
-# script for calcuations for the Moehlis-Faisst-Eckhardt equations - 9 dimensional
+# Testing different clustering parameters - MFE system
 # Urszula Golyska 2022
 
 import h5py
@@ -21,40 +21,49 @@ def MFE_read_DI(filename, dt=0.25):
 
 plt.close('all') # close all open figures
 
-####DISSIPATION#########
 type='MFE_dissipation'
 filename = 'MFE_Re600'
 dt = 0.25
-t,x = MFE_read_DI(filename, dt)
-extr_dim = [0,1]    # define both dissipation and energy as the extreme dimensions
+t,x = MFE_read_DI(filename, dt) # read pre-generated data
+extr_dim = [0,1]    # Both turbulent kinetic energy and energy dissipation will be used to define extreme events
+nr_dev = 7
 
-# Tesselation
+# Number of tessellation sections per phase space dimension
 M=20
 
 plotting = True
-min_clusters = 20 #[50, 30, 20, 10, 5] #20
-max_it_vec = [1] #[0,1,5,20,50]
+min_clusters = 20 #[50, 30, 20, 10, 5]
+max_it_vec = [0,1,5,20,50]  #1
 
-for max_it in max_it_vec:
+for max_it in max_it_vec:   # alternatively: for min_clusters in min_clusters_vector
     nr_extreme = 0
     nr_precursor=0
 
-    clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 7,plotting, False)
-    plt.show()
-    calculate_statistics(extr_dim, clusters, P, t[-1])
+    # Tessellating and clustering loop
+    clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', nr_dev,plotting, False)
 
-    x_tess,temp = tesselate(x,M,extr_dim,7)    #tesselate function without extreme event id
-    x_tess = tess_to_lexi(x_tess, M, 2)
-    x_clusters = data_to_clusters(x_tess, D, x, clusters)
+    # Calculate the statistics of the identified clusters
+    calculate_statistics(extr_dim, clusters, P, t[-1])
+    plt.show()
+
+    # Check on "new" data series
+    # Here we take the old data series and feed it to the algorithm as if it was new
+    x_tess,temp = tesselate(x,M,extr_dim,nr_dev)    # Tessellate data set (without extreme event identification)
+    x_tess = tess_to_lexi(x_tess, M, x.shape[1])
+    x_clusters = data_to_clusters(x_tess, D, x, clusters) # Translate data set to already identified clusters
+
     is_extreme = np.zeros_like(x_clusters)
     for cluster in clusters:
-        is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme
-        if cluster.is_extreme==2:
+        is_extreme[np.where(x_clusters==cluster.nr)]=cluster.is_extreme # New data series, determining whether the current
+                        # state of the system is extreme (2), precursor (1) or normal state (0)
+        if cluster.is_extreme==2:   # additionally calulate number of extreme and precursor clusters
             nr_extreme+=1
         elif cluster.is_extreme==1:
             nr_precursor+=1
 
     print("Max it = ", max_it)
+
+    # Calculate the false positive and false negative rates
     avg_time, instances, instances_extreme_no_precursor, instances_precursor_no_extreme,instances_precursor_after_extreme = backwards_avg_time_to_extreme(is_extreme,dt)
     print('Average time from precursor to extreme:', avg_time, ' s')
     print('Nr times when extreme event had a precursor:', instances)

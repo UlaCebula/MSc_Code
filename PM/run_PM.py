@@ -4,7 +4,7 @@
 from my_func import *
 
 def PM_dt(x):
-    '''Function for time derivatives for the PM system
+    '''Function for calculating the time derivatives for the PM system
 
     :param x: time series of the 5 dimensions of the PM system
     :return : returns the data series of the 5 derivatives of the PM system
@@ -43,7 +43,7 @@ for i in range(N-1):
     q = PM_dt(x[i:i+1,:])
     x[i+1,:] = x[i,:] + dt*q[0,:]
 
-# cutoff first time steps
+# Delete first 500 ts to avoid numerical instabilities
 x = x[500:,:]
 t = t[500:]
 

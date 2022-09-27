@@ -1,4 +1,4 @@
-# script for reconstructing velocity field, calculating dissipation and kinetic energy from MFE data
+# Script for reconstructing the velocity field, calculating dissipation and kinetic energy from MFE data
 # Urszula Golyska 2022
 
 import numpy as np
