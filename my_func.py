@@ -655,7 +655,7 @@ def probability(tess_ind, type):
 def plot_prob_matrix(P_dense):
     """Function for plotting probability matrix
 
-    :param P_dense: dense representation of calculated probability matrix
+    :param P_dense: dense representation of transition probability matrix
     :return: none, plots probability matrix
     """
     # Visualize probability matrix
@@ -665,148 +665,143 @@ def plot_prob_matrix(P_dense):
     return 1
 
 def extr_iden(extr_trans, D_nodes_in_clusters, P_old):
-    """Identifies clusters of extreme event and its predecessor
+    """Function for Identifying extreme and precursor clusters
 
-    :param extr_trans: node identified before as extreme event
+    :param extr_trans: hypercubes with the identified extreme events
     :param D_nodes_in_clusters: matrix of affiliation of point to the community clusters
-    :param P_old: transition probability matrix
-    :return: returns tuple of cluster of the extreme event and the clusters of its predecessor
+    :param P_old: final version of transition probability matrix
+    :return: returns tuple of the extreme cluster and its preceding precursor cluster
     """
-    ## Identify extreme event it's precursor
-    if type(extr_trans)==np.int32 or type(extr_trans)==int:
-        extr_cluster = D_nodes_in_clusters.col[D_nodes_in_clusters.row == extr_trans]
-        from_cluster = P_old.col[P_old.row == extr_cluster]
+    if type(extr_trans)==np.int32 or type(extr_trans)==int: # only one extreme hypercube
+        extr_cluster = D_nodes_in_clusters.col[D_nodes_in_clusters.row == extr_trans]   # identify the cluster they belong to
+        from_cluster = P_old.col[P_old.row == extr_cluster] # identify its precursor clusters
     else:
         extr_cluster=[]
-        for point in extr_trans:    #all nodes in extreme event
-            loc_cluster =  int(D_nodes_in_clusters.col[D_nodes_in_clusters.row==point]) # cluster of point
-            if loc_cluster not in extr_cluster:
+        for point in extr_trans:    # for all extreme hypercubes
+            loc_cluster =  int(D_nodes_in_clusters.col[D_nodes_in_clusters.row==point]) # identify the cluster they belong to
+            if loc_cluster not in extr_cluster: # if the cluster hasn't been identified yet
                 extr_cluster.append(loc_cluster)
 
         from_cluster = []
-        for cluster in extr_cluster:    # for all extreme event clusters
-            from_cluster_loc = P_old.col[P_old.row==cluster]  # from clusters that transition to extreme clusters
+        for cluster in extr_cluster:    # for all extreme clusters
+            from_cluster_loc = P_old.col[P_old.row==cluster]  # identify all precursor clusters
             for loc_cluster in from_cluster_loc:
-                if loc_cluster not in from_cluster:
+                if loc_cluster not in from_cluster: # if precursor cluster hasn't been identified yet
                     from_cluster.append(loc_cluster)
-    # from_cluster = np.delete(from_cluster,np.where(from_cluster in extr_cluster))  # remove iteration within extreme cluster - this doesn't work correctly, but I will rewrite this function anyways
 
-    return (extr_cluster,from_cluster)     #(extreme_from, extreme_to, nodes_from, nodes_to)
+    return (extr_cluster,from_cluster)
 
 def clustering_loop(P_community_old, P_graph_old, P_old, D_nodes_in_clusters):
-    """Runs the loop of re-clustering (for a iterative process)
+    """ Inside of the re-clustering loop (for a iterative process)
 
-    :param P_community_old: previous community, to be compressed
-    :param P_graph_old: previous community in graph form
-    :param P_old: previous transition probability matrix
-    :param D_nodes_in_clusters: matrix of affiliation of point to the previous community clusters
+    :param P_community_old: dictionary of previous network affiliations (to be deflated)
+    :param P_graph_old: previous network in graph form
+    :param P_old: transition probability matrix of previous network (to be deflated)
+    :param D_nodes_in_clusters: matrix of affiliation of points to the previously defined community clusters
     :return: returns a set of the same parameters, but after one optimization run, can be then directly fed to the
      function again to obtain more optimized results
     """
 
-    P_community_new = spectralopt.partition(P_graph_old)  # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
-    D_new = community_aff(P_community_old, P_community_new, 0, 0, 'iteration', 1)  # matrix of point-to-cluster affiliation
+    P_community_new = spectralopt.partition(P_graph_old)  # New community; returns dictionary of new network affiliations
+    D_new = community_aff(P_community_old, P_community_new, 0, 0, 'iteration', 1)  # new affiliation matrix
 
     # Deflate the Markov matrix
-    P_new = np.matmul(np.matmul(D_new.transpose(), P_old.transpose()), D_new)  # P1 transposed or not?
-    print(np.sum(P_new,axis=0).tolist())  # should be approx.(up to rounding errors) equal to number of nodes in each cluster
+    P_new = np.matmul(np.matmul(D_new.transpose(), P_old.transpose()), D_new)
+    # print(np.sum(P_new,axis=0).tolist())  # For checking purposes - should be approx.(up to rounding errors) equal to number of nodes in each cluster
 
     # Graph form
-    # P_new = P_new.transpose()   # had to add transpose for the classic probability, why? the same for backwards?
     P_graph_old = to_graph(P_new)
-    P_community_old = P_community_new
+    P_community_old = P_community_new   # make the new network "old" for the next iteration
     P_old = P_new
 
-    # make translation of which nodes belong to the new cluster
+    # Translation of which nodes belong to the new clusters - create new affiliation matrix D
     D_nodes_in_clusters = np.matmul(D_nodes_in_clusters, D_new)
     return P_community_old, P_graph_old, P_old, D_nodes_in_clusters
 
 def clustering_loop_sparse(P_community_old, P_graph_old, P_old, D_nodes_in_clusters):
-    """Runs the loop of re-clustering (for a iterative process); sparse version
+    """Inside of the re-clustering loop (for a iterative process); sparse version
 
-    :param P_community_old: previous community, to be compressed
-    :param P_graph_old: previous community in graph form (sparse)
-    :param P_old: previous transition probability matrix (sparse)
-    :param D_nodes_in_clusters: sparse matrix of affiliation of point to the previous community clusters
+    :param P_community_old: dictionary of previous network affiliations (to be deflated; sparse)
+    :param P_graph_old: previous network in graph form (sparse)
+    :param P_old: transition probability matrix of previous network (to be deflated; sparse)
+    :param D_nodes_in_clusters: matrix of affiliation of points to the previously defined community clusters
     :return: returns a set of the same parameters, but after one optimization run, can be then directly fed to the
      function again to obtain more optimized results
     """
 
-    P_community_new = spectralopt.partition(P_graph_old)  # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
-    D_new = community_aff_sparse(P_community_old, P_community_new, 0, 0, 'iteration', 1)  # matrix of point-to-cluster affiliation
+    P_community_new = spectralopt.partition(P_graph_old)  # New community; returns dictionary of new network affiliations
+    D_new = community_aff_sparse(P_community_old, P_community_new, 0, 0, 'iteration', 1)  # new affiliation matrix
 
     # Deflate the Markov matrix
     P_new = sp.coo_matrix((D_new.transpose() * P_old) * D_new)
-    print(np.sum(P_new,axis=0).tolist())  # should be approx.(up to rounding errors) equal to number of nodes in each cluster
+    # print(np.sum(P_new,axis=0).tolist())  # For checking purposes - should be approx.(up to rounding errors) equal to number of nodes in each cluster
 
     # Graph form
-    # P_new = P_new.transpose()   # had to add transpose for the classic probability, why? the same for backwards?
     P_graph_old = to_graph_sparse(P_new)
-    P_community_old = P_community_new
+    P_community_old = P_community_new # make the new network "old" for the next iteration
     P_old = P_new
 
-    # make translation of which nodes belong to the new cluster
+    # Translation of which nodes belong to the new clusters - create new affiliation matrix D
     D_nodes_in_clusters = sp.coo_matrix(D_nodes_in_clusters*D_new)
     return P_community_old, P_graph_old, P_old, D_nodes_in_clusters
 
 def data_to_clusters(tess_ind_trans, D_nodes_in_clusters, x=[], *clusters):
-    '''Translates datapoints to cluster number affiliation
+    '''Translates data points to their affiliated cluster id
 
-    :param tess_ind_trans: datapoint time series already translated to tesselated lexicographic ordering
-    :param D_nodes_in_clusters: matrix of affiliation of all the possible points to current community ordering
-    :param x:
-    :param clusters:
+    :param tess_ind_trans: time series; already translated to tessellated lexicographic ordering
+    :param D_nodes_in_clusters: matrix of affiliation of all points to communities
+    :param x: data series of occupied phase space
+    :param clusters: list of all identified clusters and their propoerties
     :return: returns vector of the time series with their cluster affiliation
     '''
     tess_ind_cluster = np.zeros_like(tess_ind_trans)
-    for point in np.unique(tess_ind_trans):     # take all unique points in tesselated space
-        if D_nodes_in_clusters.col[D_nodes_in_clusters.row==point].size>0:  # if we already have this point
+    for point in np.unique(tess_ind_trans):     # for all unique points in tessellated phase space
+        if D_nodes_in_clusters.col[D_nodes_in_clusters.row==point].size>0:  # if the point was already present in the data series (and therefore is tessellated)
             cluster_aff = int(D_nodes_in_clusters.col[D_nodes_in_clusters.row==point])  # find affiliated cluster
         else:   # this point has not been encountered yet
-            #find cluster with closest center (physical, not in tesselated space)
+            # Find the cluster with the closest center (in the untessellated phase space)
             y = x[np.where(tess_ind_trans==point),:]    # the point in physical space
-            cluster_aff = find_closest_center(y[0,0,:],clusters[0])    # take one (first of these) point
+            cluster_aff = find_closest_center(y[0,0,:],clusters[0])    # find the (one) closest point
         tess_ind_cluster[tess_ind_trans==point] = cluster_aff
     return tess_ind_cluster
 
 def cluster_centers(x,tess_ind, tess_ind_cluster, D_nodes_in_clusters,dim):
-    ''' Function for calculating the centers of found clusters in both physical and tesselated phase space
+    ''' Function for calculating the cluster centers in both physical and tessellated phase space
 
-    :param x: data matrix (look at to_burst or read_DI)
-    :param tess_ind: matrix which includes the indices of the box taken by the data points in consequent time steps, can
+    :param x: data series
+    :param tess_ind: matrix including the indices of the hypercubes of the subsequent data points, can
     be obtained from the tesselate(x,N) function
-    :param tess_ind_cluster: vector of the time series with their cluster affiliation
-    :param D_nodes_in_clusters: matrix of affiliation of all the possible points to current community ordering
-    :param dim: number of dimensions
-    :return: returns two vectors: cluster centers in phase space and in tesselated phase space
+    :param tess_ind_cluster: vector of time series with their cluster affiliation
+    :param D_nodes_in_clusters: matrix of affiliation of all the possible points to clusters
+    :param dim: number of dimensions of the phase space
+    :return: returns two vectors: cluster centers in phase space and in tessellated phase space
     '''
     coord_clust = np.zeros((D_nodes_in_clusters.shape[1], dim))
     for i in range(D_nodes_in_clusters.shape[1]):   # for each cluster
-        coord_clust[i,:] = np.mean(x[tess_ind_cluster==i,:], axis=0)
+        coord_clust[i,:] = np.mean(x[tess_ind_cluster==i,:], axis=0)    # center in phase space is the average of the untessellated data series
 
-    pts, indices = np.unique(tess_ind, return_index=True, axis=0)      #unique points
+    pts, indices = np.unique(tess_ind, return_index=True, axis=0)       # unique points in phase space
     coord_clust_tess = np.zeros((D_nodes_in_clusters.shape[1], dim))
     num_clust = np.zeros((D_nodes_in_clusters.shape[1], 1))
 
     for i in range(len(pts[:, 0])):  # for each unique point
-        loc_clust = tess_ind_cluster[indices[i]]
+        loc_clust = tess_ind_cluster[indices[i]]    # identify local cluster
         num_clust[loc_clust] += 1
         coord_clust_tess[loc_clust,:] += pts[i, :]
 
     for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
-        coord_clust_tess[i,:] = coord_clust_tess[i,:] / num_clust[i]
+        coord_clust_tess[i,:] = coord_clust_tess[i,:] / num_clust[i] # center in tessellated phase space is the average of the tessellated data series
 
     return coord_clust, coord_clust_tess
 
 def plot_phase_space(x, type):
-    """Function for plotting the MFE data in phase space
+    """Function for plotting the data in phase space - for the six chaotic systems
 
-    :param x: data matrix (look at to_burst or read_DI)
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
+    :param x: data series
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov"; "kolmogorov_k_D")
     :return: none, plots data x in equivalent phase space
     """
     if type=='MFE_burst':
-
         ax = plt.figure().add_subplot(projection='3d')
         ax.plot(x[:,0], x[:,1], x[:,2], lw=0.5)
         ax.set_xlabel("Roll & streak")
@@ -864,14 +859,13 @@ def plot_phase_space(x, type):
 
     return 1
 
-def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
-    """Function for plotting the MFE data in tesselated phase space
+def plot_tesselated_space(tess_ind,type):
+    """Function for plotting the tessellated phase space - for the six chaotic systems
 
-    :param tess_ind: matrix which includes the indices of the box taken by the data points in consequent time steps, can
+    :param tess_ind: matrix including the indices of the hypercubes of the subsequent data points, can
     be obtained from the tesselate(x,N) function
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
-    :param least_prob_tess: vector of least probable events (optional)
-    :return: none, plots data x in equivalent tesselated phase space
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov"; "kolmogorov_kD")
+    :return: none, plots data x in equivalent tessellated phase space
     """
     if type=='MFE_burst':
         ax = plt.figure().add_subplot(projection='3d')
@@ -890,11 +884,6 @@ def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
     if type=='MFE_dissipation' or type=='kolmogorov_kD':
         plt.figure(figsize=(7, 7))
         plt.scatter(tess_ind[:,1], tess_ind[:,0], s=10, marker='s', facecolors = 'None', edgecolor = 'blue') #I should relate somehow s to N and the fig size
-        # if np.size(least_prob_tess)>1:
-        #     for i in range(len(least_prob_tess[:,0])):  # for all least probable events
-        #         plt.plot([least_prob_tess[i,0],least_prob_tess[i,2]], [least_prob_tess[i,1],least_prob_tess[i,3]], '--r')
-        #         plt.scatter(least_prob_tess[i,0],least_prob_tess[i,1], facecolors = 'red', edgecolor = 'red')     # from
-        #         plt.scatter(least_prob_tess[i,2], least_prob_tess[i,3], facecolors='green', edgecolor='green')    # to (or maybe the other way around)
         plt.xlim([-0.5, 99.5])
         plt.ylim([-0.5, 99.5])
         plt.grid('minor', 'both')
@@ -902,12 +891,9 @@ def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
         plt.xlabel("k")
         plt.ylabel("D")
 
-        plt.show()
-
     if type=='sine':
         plt.figure(figsize=(7, 7))
-        plt.scatter(tess_ind[:, 0], tess_ind[:, 1], s=200, marker='s', facecolors='None',
-                    edgecolor='blue')  # I should relate somehow s to N and the fig size
+        plt.scatter(tess_ind[:, 0], tess_ind[:, 1], s=200, marker='s', facecolors='None', edgecolor='blue')
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.xlabel("x")
@@ -924,8 +910,7 @@ def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
 
     if type=='CDV':
         plt.figure(figsize=(6, 6))
-        plt.scatter(tess_ind[:, 0], tess_ind[:, 3], s=200, marker='s', facecolors='None',
-                    edgecolor='blue')
+        plt.scatter(tess_ind[:, 0], tess_ind[:, 3], s=200, marker='s', facecolors='None', edgecolor='blue')
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.ylabel("$x_4$")
@@ -933,8 +918,7 @@ def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
 
     if type=='PM':
         plt.figure(figsize=(6, 6))
-        plt.scatter(tess_ind[:, 2], tess_ind[:, 4], s=200, marker='s', facecolors='None',
-                    edgecolor='blue')
+        plt.scatter(tess_ind[:, 2], tess_ind[:, 4], s=200, marker='s', facecolors='None', edgecolor='blue')
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.ylabel("$x_5$")
@@ -943,15 +927,15 @@ def plot_tesselated_space(tess_ind,type, least_prob_tess=[0]):
     return 1
 
 def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coord_centers, extr_clusters,nr_dev,palette):
-    """Function for plotting phase space with cluster affiliation
+    """Function for plotting phase space with cluster affiliation - for the six chaotic systems
 
-    :param x: data matrix
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
-    :param D_nodes_in_clusters: matrix of affiliation of point to the community clusters
-    :param tess_ind_cluster: vector of the time series with their cluster affiliation
+    :param x: data series
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov"; "kolmogorov_kD")
+    :param D_nodes_in_clusters: matrix of affiliation of points to the community clusters
+    :param tess_ind_cluster: vector of time series with their cluster affiliation
     :param coord_centers: cluster centers in phase space
-    :param extr_clusters: vector of cluster numbers which contain extreme events
-    :param nr_dev: scalar defining how far away from the mean (multiples of the standard deviation) will be considered an extreme event
+    :param extr_clusters: vector of extreme cluster ids
+    :param nr_dev: scalar defining how far away from the mean (in multiples of the standard deviation) will be considered an extreme event
     :param palette: color palette decoding a unique color code for each cluster
     :return: none, plots the phase space colored by cluster affiliation
     """
@@ -959,12 +943,12 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         plt.figure()
         ax = plt.axes(projection='3d')
         for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
-            ax.scatter(x[tess_ind_cluster==i,0], x[tess_ind_cluster==i,1], x[tess_ind_cluster==i,2])  # I should relate somehow s to N and the fig size
+            ax.scatter(x[tess_ind_cluster==i,0], x[tess_ind_cluster==i,1], x[tess_ind_cluster==i,2])
             if i in extr_clusters:
-                t = ax.text(coord_centers[i,0], coord_centers[i,1], coord_centers[i,2], str(i),color='r', backgroundcolor='1')  # numbers of clusters
+                t = ax.text(coord_centers[i,0], coord_centers[i,1], coord_centers[i,2], str(i),color='r', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                t = ax.text(coord_centers[i,0], coord_centers[i,1], coord_centers[i,2], str(i), color='white', backgroundcolor='1')  # numbers of clusters
+                t = ax.text(coord_centers[i,0], coord_centers[i,1], coord_centers[i,2], str(i), color='white', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
         ax.set_xlabel("Roll & streak")
         ax.set_ylabel("Mean shear")
@@ -975,21 +959,15 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         plt.figure()
         ax = plt.axes(projection='3d')
         for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
-            # if i==4:
-            #     ax.scatter(x[tess_ind_cluster == i, 0], x[tess_ind_cluster == i, 1], x[tess_ind_cluster == i, 2],
-            #                color='red')  # I should relate somehow s to N and the fig size
-            # else:
-            ax.scatter(x[tess_ind_cluster == i, 0], x[tess_ind_cluster == i, 1], x[tess_ind_cluster == i, 2],
-                           color='#1f77b4')  # I should relate somehow s to N and the fig size
-            # ax.scatter(x[tess_ind_cluster == i, 0], x[tess_ind_cluster == i, 1], x[tess_ind_cluster == i, 2],color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
-            # if i in extr_clusters:
-            #     t = ax.text(coord_centers[i, 0], coord_centers[i, 1], coord_centers[i, 2], str(i),
-            #             color='r', backgroundcolor='1')  # numbers of clusters
-            #     t.set_bbox(dict(facecolor='black', alpha=0.35))
-            # else:
-            #     t = ax.text(coord_centers[i, 0], coord_centers[i, 1], coord_centers[i, 2],
-            #             str(i), color='white', backgroundcolor='1')  # numbers of clusters
-            #     t.set_bbox(dict(facecolor='black', alpha=0.35))
+            ax.scatter(x[tess_ind_cluster == i, 0], x[tess_ind_cluster == i, 1], x[tess_ind_cluster == i, 2],color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
+            if i in extr_clusters:
+                t = ax.text(coord_centers[i, 0], coord_centers[i, 1], coord_centers[i, 2], str(i),
+                        color='r', backgroundcolor='1')  # display cluster id
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
+            else:
+                t = ax.text(coord_centers[i, 0], coord_centers[i, 1], coord_centers[i, 2],
+                        str(i), color='white', backgroundcolor='1')  # display cluster id
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
         ax.set_xlabel("D")
         ax.set_ylabel("k")
         ax.set_zlabel("|a(1,4)|")
@@ -999,17 +977,13 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         plt.axhline(y=np.mean(x[:,0])+nr_dev*np.std(x[:, 0]), color='r', linestyle='--') # plot horizontal cutoff
         plt.axvline(x=np.mean(x[:, 1]) + nr_dev*np.std(x[:, 1]), color='r', linestyle='--')  # plot horizontal cutoff
         for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
-            # if i==4:
-            #     plt.scatter(x[tess_ind_cluster == i,1], x[tess_ind_cluster == i,0], color='red')  # I should relate somehow s to N and the fig size
-            #
-            # else:
-            plt.scatter(x[tess_ind_cluster == i,1], x[tess_ind_cluster == i,0], color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
+            plt.scatter(x[tess_ind_cluster == i,1], x[tess_ind_cluster == i,0], color=palette.colors[i,:])
 
             if i in extr_clusters:     # if cluster is extreme - plot number in red
-                t = plt.text(coord_centers[i,1], coord_centers[i,0], str(i),color='r', backgroundcolor='1')  # numbers of clusters
+                t = plt.text(coord_centers[i,1], coord_centers[i,0], str(i),color='r', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                t = plt.text(coord_centers[i,1], coord_centers[i,0], str(i),color='white', backgroundcolor='1')  # numbers of clusters
+                t = plt.text(coord_centers[i,1], coord_centers[i,0], str(i),color='white', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.minorticks_on()
         plt.xlabel("k")
@@ -1021,12 +995,12 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         plt.axvline(x=np.mean(x[:,1]) + nr_dev*np.std(x[:, 1]), color='r', linestyle='--')  # plot horizontal cutoff
         for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
             plt.scatter(x[tess_ind_cluster == i,0],
-                        x[tess_ind_cluster == i,1], color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
+                        x[tess_ind_cluster == i,1], color=palette.colors[i,:])
             if i in extr_clusters:      # if cluster is extreme - plot number in red
-                t = plt.text(coord_centers[i,0], coord_centers[i,1], str(i),color='r', backgroundcolor='1')  # numbers of clusters
+                t = plt.text(coord_centers[i,0], coord_centers[i,1], str(i),color='r', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                t = plt.text(coord_centers[i,0], coord_centers[i,1], str(i), color='white',backgroundcolor='1')  # numbers of clusters
+                t = plt.text(coord_centers[i,0], coord_centers[i,1], str(i), color='white',backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.grid('minor', 'both')
         plt.minorticks_on()
@@ -1037,12 +1011,12 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         plt.figure()
         ax = plt.axes(projection='3d')
         for i in range(D_nodes_in_clusters.shape[1]):   # for all communities
-            ax.scatter3D(x[tess_ind_cluster==i,0], x[tess_ind_cluster==i,1], x[tess_ind_cluster==i,2],color=palette.colors[i,:])  # I should relate somehow s to N and the fig size
+            ax.scatter3D(x[tess_ind_cluster==i,0], x[tess_ind_cluster==i,1], x[tess_ind_cluster==i,2],color=palette.colors[i,:])
             if i in extr_clusters:
-                t = ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i), color='r', backgroundcolor='1')  # numbers of clusters
+                t = ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i), color='r', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                t = ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i),color='white', backgroundcolor='1')  # numbers of clusters
+                t = ax.text(coord_centers[i,0], coord_centers[i,1],coord_centers[i,2], str(i),color='white', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
         ax.set_xlabel("x")
         ax.set_ylabel("y")
@@ -1052,11 +1026,11 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         plt.figure(figsize=(6, 6))
         for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
             plt.scatter(x[tess_ind_cluster == i, 0],
-                        x[tess_ind_cluster == i, 3], color=palette.colors[i, :])  # I should relate somehow s to N and the fig size
+                        x[tess_ind_cluster == i, 3], color=palette.colors[i, :])
             if i in extr_clusters:  # if cluster is extreme - plot number in red
-                plt.text(coord_centers[i, 0], coord_centers[i, 3], str(i), color='r')  # numbers of clusters
+                plt.text(coord_centers[i, 0], coord_centers[i, 3], str(i), color='r')  # display cluster id
             else:
-                plt.text(coord_centers[i, 0], coord_centers[i, 3], str(i), color='white')  # numbers of clusters
+                plt.text(coord_centers[i, 0], coord_centers[i, 3], str(i), color='white')  # display cluster id
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.ylabel("$x_4$")
@@ -1066,13 +1040,9 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
         plt.figure(figsize=(6,6))
         for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
             plt.scatter(x[tess_ind_cluster == i, 2],
-                        x[tess_ind_cluster == i, 4], color=palette.colors[i, :])  # I should relate somehow s to N and the fig size
-            if i in extr_clusters:  # if cluster is extreme - plot number in red
-                t = plt.text(coord_centers[i, 2], coord_centers[i, 4], str(i), color='r', backgroundcolor='1')  # numbers of clusters
-                t.set_bbox(dict(facecolor='black', alpha=0.35))
-            else:
-                t = plt.text(coord_centers[i, 2], coord_centers[i, 4], str(i), color='white', backgroundcolor='1')  # numbers of clusters
-                t.set_bbox(dict(facecolor='black', alpha=0.35))
+                        x[tess_ind_cluster == i, 4], color=palette.colors[i, :])
+            t = plt.text(coord_centers[i, 2], coord_centers[i, 4], str(i), color='white', backgroundcolor='1') # display cluster id
+            t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.ylabel("$x_5$")
@@ -1081,36 +1051,33 @@ def plot_phase_space_clustered(x,type,D_nodes_in_clusters,tess_ind_cluster, coor
     return 1
 
 def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_ind_cluster, coord_centers_tess, extr_clusters, palette):
-    """Function for plotting tesselated phase space with cluster affiliation
+    """Function for plotting tessellated phase space with cluster affiliation - for the six chaotic systems
 
-    :param tess_ind: matrix which includes the indices of the box taken by the data points in consequent time steps, can
+    :param tess_ind: matrix including the indices of the hypercubes of the subsequent data points, can
     be obtained from the tesselate(x,N) function
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; 'kolmogorov')
-    :param D_nodes_in_clusters: matrix of affiliation of point to the community clusters
-    :param tess_ind_cluster: vector of the time series with their cluster affiliation
-    :param coord_centers_tess: cluster centers in tesselated phase space
-    :param extr_clusters: vector of cluster numbers which contain extreme events
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; 'kolmogorov'; "kolmogorov_kD")
+    :param D_nodes_in_clusters: matrix of affiliation of points to the community clusters
+    :param tess_ind_cluster: vector of time series with their cluster affiliation
+    :param coord_centers_tess: cluster centers in tessellated phase space
+    :param extr_clusters: vector of extreme cluster ids
     :param palette: color palette decoding a unique color code for each cluster
-    :return: none, plots the tesselated phase space colored by cluster affiliation
+    :return: none, plots the tessellated phase space colored by cluster affiliation
     """
     if type=='MFE_dissipation' or type=='kolmogorov_kD':
-        # take only unique spots in tesselated space
-        x,indices=np.unique(tess_ind,return_index=True,axis=0)
+        x,indices=np.unique(tess_ind,return_index=True,axis=0)  # unique hypercubes in tessellated space
 
         plt.figure(figsize=(7, 7))
-        for i in range(len(x[:,0])): #for each unique point
+        for i in range(len(x[:,0])): # for each unique point
             loc_clust = tess_ind_cluster[indices[i]]
             loc_col = palette.colors[loc_clust,:]
-            # if i==4:
-            #     loc_col='red'
-            plt.scatter(x[i,1], x[i,0], s=10, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
+            plt.scatter(x[i,1], x[i,0], s=10, marker='s', facecolors = loc_col, edgecolor = loc_col)
 
         for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
             if i in extr_clusters:
-                t = plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i),color='r', backgroundcolor='1')  # numbers of clusters
+                t = plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i),color='r', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                t = plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i), color='white', backgroundcolor='1')  # numbers of clusters
+                t = plt.text(coord_centers_tess[i,1], coord_centers_tess[i,0], str(i), color='white', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.grid('minor', 'both')
         plt.minorticks_on()
@@ -1120,27 +1087,22 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
         plt.ylim([-0.5, 99.5])
 
     if type=='kolmogorov':
-        # take only unique spots in tesselated space
-        x, indices = np.unique(tess_ind, return_index=True, axis=0)
+        x, indices = np.unique(tess_ind, return_index=True, axis=0) # unique hypercubes in tessellated space
 
         plt.figure(figsize=(7, 7))
         ax = plt.axes(projection='3d')
         for i in range(len(x[:, 0])):  # for each unique point
             loc_clust = tess_ind_cluster[indices[i]]
             loc_col = palette.colors[loc_clust, :]
-            # if loc_clust==4:
-            #     loc_col='red'
-            # else:
-            #     loc_col = '#1f77b4'
-            ax.scatter3D(x[i, 0], x[i, 1], x[i,2],color=loc_col)  # I should relate somehow s to N and the fig size
+            ax.scatter3D(x[i, 0], x[i, 1], x[i,2],color=loc_col)
 
         for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
             if i in extr_clusters:
                 t = ax.text(coord_centers_tess[i, 0], coord_centers_tess[i, 1], coord_centers_tess[i, 2], str(i),
-                         color='r', backgroundcolor='1')  # numbers of clusters
+                         color='r', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                t = ax.text(coord_centers_tess[i, 0], coord_centers_tess[i, 1], coord_centers_tess[i, 2], str(i), color='white', backgroundcolor='1')  # numbers of clusters
+                t = ax.text(coord_centers_tess[i, 0], coord_centers_tess[i, 1], coord_centers_tess[i, 2], str(i), color='white', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.grid('minor', 'both')
         plt.minorticks_on()
@@ -1149,21 +1111,20 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
         ax.set_zlabel("|a(1,4)|")
 
     if type=='sine':
-        # take only unique spots in tesselated space
-        x,indices=np.unique(tess_ind,return_index=True,axis=0)
+        x,indices=np.unique(tess_ind,return_index=True,axis=0)  # unique hypercubes in tessellated space
 
         plt.figure(figsize=(7, 7))
-        for i in range(len(x[:,0])): #for each unique point
+        for i in range(len(x[:,0])): # for each unique point
             loc_clust = tess_ind_cluster[indices[i]]
             loc_col = palette.colors[loc_clust,:]
-            plt.scatter(x[i,0], x[i,1], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
+            plt.scatter(x[i,0], x[i,1], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col)
 
         for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
             if i in extr_clusters:
-                t = plt.text(coord_centers_tess[i,0], coord_centers_tess[i,1], str(i),color='r', backgroundcolor='1')  # numbers of clusters
+                t = plt.text(coord_centers_tess[i,0], coord_centers_tess[i,1], str(i),color='r', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                t = plt.text(coord_centers_tess[i,0], coord_centers_tess[i,1], str(i), color='white', backgroundcolor='1')  # numbers of clusters
+                t = plt.text(coord_centers_tess[i,0], coord_centers_tess[i,1], str(i), color='white', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.grid('minor', 'both')
         plt.minorticks_on()
@@ -1171,75 +1132,75 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
         plt.ylabel("y")
 
     if type=='CDV':
-        # take only unique spots in tesselated space
-        x, indices = np.unique(tess_ind, return_index=True, axis=0)
+        x, indices = np.unique(tess_ind, return_index=True, axis=0) # unique hypercubes in tessellated space
 
         plt.figure(figsize=(6, 6))
-        for i in range(len(x[:,0])): #for each unique point
+        for i in range(len(x[:,0])): # for each unique point
             loc_clust = tess_ind_cluster[indices[i]]
             loc_col = palette.colors[loc_clust,:]
-            plt.scatter(x[i,0], x[i,3], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col) #I should relate somehow s to N and the fig size
+            plt.scatter(x[i,0], x[i,3], s=200, marker='s', facecolors = loc_col, edgecolor = loc_col)
 
         for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
             if i in extr_clusters:
-                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,3], str(i),color='r')  # numbers of clusters
+                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,3], str(i),color='r')  # display cluster id
             else:
-                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,3], str(i), color='white')  # numbers of clusters
+                plt.text(coord_centers_tess[i,0], coord_centers_tess[i,3], str(i), color='white')  # display cluster id
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.ylabel("$x_4$")
         plt.xlabel("$x_1$")
 
     if type=='PM':
-        # take only unique spots in tesselated space
-        x, indices = np.unique(tess_ind, return_index=True, axis=0)
+        x, indices = np.unique(tess_ind, return_index=True, axis=0) # unique hypercubes in tessellated space
 
         plt.figure(figsize=(6, 6))
         for i in range(len(x[:, 0])):  # for each unique point
             loc_clust = tess_ind_cluster[indices[i]]
             loc_col = palette.colors[loc_clust, :]
             plt.scatter(x[i, 2], x[i, 4], s=200, marker='s', facecolors=loc_col,
-                        edgecolor=loc_col)  # I should relate somehow s to N and the fig size
+                        edgecolor=loc_col)
 
         for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
             if i in extr_clusters:
-                t = plt.text(coord_centers_tess[i, 2], coord_centers_tess[i, 4], str(i), color='r', backgroundcolor='1')  # numbers of clusters
+                t = plt.text(coord_centers_tess[i, 2], coord_centers_tess[i, 4], str(i), color='r', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
             else:
-                t = plt.text(coord_centers_tess[i, 2], coord_centers_tess[i, 4], str(i), color='white', backgroundcolor='1')  # numbers of clusters
+                t = plt.text(coord_centers_tess[i, 2], coord_centers_tess[i, 4], str(i), color='white', backgroundcolor='1')  # display cluster id
                 t.set_bbox(dict(facecolor='black', alpha=0.35))
         plt.grid('minor', 'both')
         plt.minorticks_on()
         plt.ylabel("$x_5$")
         plt.xlabel("$x_3$")
 
-        if type == 'LA':
-            plt.figure()
-            ax = plt.axes(projection='3d')
-            for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
-                ax.scatter3D(x[tess_ind_cluster == i, 0], x[tess_ind_cluster == i, 1], x[tess_ind_cluster == i, 2],
-                             color=palette.colors[i, :])  # I should relate somehow s to N and the fig size
-                if i in extr_clusters:
-                    t = ax.text(coord_centers[i, 0], coord_centers[i, 1], coord_centers[i, 2], str(i), color='r',
-                                backgroundcolor='1')  # numbers of clusters
-                    t.set_bbox(dict(facecolor='black', alpha=0.35))
-                else:
-                    t = ax.text(coord_centers[i, 0], coord_centers[i, 1], coord_centers[i, 2], str(i), color='white',
-                                backgroundcolor='1')  # numbers of clusters
-                    t.set_bbox(dict(facecolor='black', alpha=0.35))
-            ax.set_xlabel("x")
-            ax.set_ylabel("y")
-            ax.set_zlabel("z")
+    if type == 'LA':
+        x, indices = np.unique(tess_ind, return_index=True, axis=0)  # unique hypercubes in tessellated space
+
+        plt.figure()
+        ax = plt.axes(projection='3d')
+        for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
+            ax.scatter3D(x[tess_ind_cluster == i, 0], x[tess_ind_cluster == i, 1], x[tess_ind_cluster == i, 2],
+                         color=palette.colors[i, :])
+            if i in extr_clusters:
+                t = ax.text(coord_centers_tess[i, 0], coord_centers_tess[i, 1], coord_centers_tess[i, 2], str(i), color='r',
+                            backgroundcolor='1')  # display cluster id
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
+            else:
+                t = ax.text(coord_centers_tess[i, 0], coord_centers_tess[i, 1], coord_centers_tess[i, 2], str(i), color='white',
+                            backgroundcolor='1') # display cluster id
+                t.set_bbox(dict(facecolor='black', alpha=0.35))
+        ax.set_xlabel("x")
+        ax.set_ylabel("y")
+        ax.set_zlabel("z")
 
     return 1
 
 def plot_time_series(x,t, type):
-    """Function for plotting the time series of MFE data
+    """Function for plotting the time series - for the six chaotic systems
 
     :param x: data matrix
     :param t: time vector
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
-    :return: none, plots time series of data (without plt.show())
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov"; "kolmogorov_kD")
+    :return: none, plots time series of data
     """
     if type=='MFE_burst':
         fig, axs = plt.subplots(3)
@@ -1262,6 +1223,7 @@ def plot_time_series(x,t, type):
 
     if type == 'kolmogorov':
         fig, axs = plt.subplots(3)
+        fig.suptitle("Dynamic behavior of the Kolmogorov flow")
         plt.subplot(3, 1, 1)
         plt.plot(t, x[:, 0])
         plt.xlim([t[0], t[-1]])
@@ -1297,7 +1259,7 @@ def plot_time_series(x,t, type):
 
     if type=='sine':
         fig, axs = plt.subplots(2)
-        # fig.suptitle("Dynamic behavior of the sine wave")
+        fig.suptitle("Dynamic behavior of the sine wave")
         plt.subplot(2,1,1)
         plt.plot(t, x[:,0])
         plt.ylabel("$x$", fontsize=20)
@@ -1363,9 +1325,8 @@ def plot_time_series(x,t, type):
         plt.xlabel("t", fontsize=20)
 
     if type=='PM':
-        # Visualize dataset
         fig, axs = plt.subplots(3)
-        # fig.suptitle("Dynamic behavior of the PM flow")
+        fig.suptitle("Dynamic behavior of the PM flow")
 
         plt.subplot(3,1,1)
         plt.plot(t, x[:,0])
@@ -1400,11 +1361,12 @@ def plot_time_series(x,t, type):
     return 1
 
 def plot_time_series_clustered(y,t, tess_ind_cluster, palette, type):
-    """Function for plotting the time series of data with cluster affiliation
+    """Function for plotting the time series of data with cluster affiliation - for the six chaotic systems
 
-    :param y: vector of the parameter to plot; for type=="burst" y=burst; for type=="dissipation" y=D
+    :param y: vector of the parameter to plot; for type=="MFE_burst" y should be the burst; for type=="MFE_dissipation"
+    y should be the dissipation
     :param t: time vector
-    :param tess_ind_cluster: vector of the time series with their cluster affiliation
+    :param tess_ind_cluster: vector of time series with their cluster affiliation
     :param palette: color palette decoding a unique color code for each cluster
     :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
     :return: none, plots time series with cluster affiliation
@@ -1412,7 +1374,7 @@ def plot_time_series_clustered(y,t, tess_ind_cluster, palette, type):
     plt.figure()
     plt.plot(t, y)
     for i in range(len(tess_ind_cluster)-1):
-        if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:   # if change of cluster
+        if tess_ind_cluster[i]!=tess_ind_cluster[i+1]:   # find the cluster transition in the data series
             loc_col = palette.colors[tess_ind_cluster[i]]
             # plt.axvline(x=(t[i] + t[i + 1]) / 2, color=loc_col, linestyle='--')
             plt.scatter((t[i] + t[i + 1]) / 2, (y[i] + y[i + 1]) / 2,marker='s', facecolors = 'None', edgecolor = loc_col)
@@ -1440,14 +1402,15 @@ def plot_time_series_clustered(y,t, tess_ind_cluster, palette, type):
     return 1
 
 def plot_time_series_extr_iden(y,t, tess_ind_cluster, from_cluster, extr_clusters, type):
-    '''Function for plotting time series with extreme event and precursor identification
+    '''Function for plotting time series with extreme event and precursor identification - for the six chaotic systems
 
-    :param y: vector of the parameter to plot; for type=="burst" y=burst; for type=="dissipation" y=D
+    :param y: vector of the parameter to plot; for type=="MFE_burst" y should be the burst; for type=="MFE_dissipation"
+    y should be the dissipation
     :param t: time vector
-    :param tess_ind_cluster: vector of the time series with their cluster affiliation
-    :param from_cluster: vector of cluster numbers which can transition to extreme event
-    :param extr_clusters: vector of cluster numbers which contain extreme events
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
+    :param tess_ind_cluster: vector of time series with their cluster affiliation
+    :param from_cluster: vector of precursor cluster ids
+    :param extr_clusters: vector of extreme clusterids
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "kolmogorov")
     :return: none, plots time series with extreme event (blue) and precursor (red) identification
     '''
     plt.figure()
@@ -1466,75 +1429,76 @@ def plot_time_series_extr_iden(y,t, tess_ind_cluster, from_cluster, extr_cluster
     return 1
 
 def avg_time_in_cluster(cluster_id,tess_ind_cluster,t):
-    ''' Function for calculating the average time spend in cluster
+    ''' Function for calculating the average time spent in a cluster
 
-    :param cluster_id: number of local cluster
-    :param tess_ind_cluster: vector of the time series with their cluster affiliation
+    :param cluster_id: id of local cluster
+    :param tess_ind_cluster: vector of time series with their cluster affiliation
     :param t: time vector
-    :return: returns average time spend in given cluster
+    :return: returns average time spent in given cluster and the number of occurrences in the data series
     '''
-    # find all instances of cluster
-    ind = np.where(tess_ind_cluster==cluster_id) #returns index
+    # Find all instances of cluster in the data series
+    ind = np.where(tess_ind_cluster==cluster_id) # returns indices of the occurrences
     ind=ind[0]
 
     nr_cycles = 1
     t_cluster=[]
 
     t_start= t[ind[0]]
-    for i in range(len(ind)-1):
-        if ind[i+1]!=ind[i]+1:  # if the next time is not also there
-            t_cluster.append(t[ind[i]]-t_start)     # time spend in cluster during cycle
+    for i in range(len(ind)-1): # loop through all occurrences
+        if ind[i+1]!=ind[i]+1:  # if the next time is not there (is in a different cluster)
+            t_cluster.append(t[ind[i]]-t_start)     # time spent in cluster during current cycle
             nr_cycles+=1
             t_start = t[ind[i+1]]
-    # include last point
+    # Include last point
     t_cluster.append(t[ind[-1]] - t_start)
-    avg_time = np.mean(t_cluster)
+    avg_time = np.mean(t_cluster)   # calculate average of the cycle times
 
     return avg_time, nr_cycles
 
 def find_closest_center(y,clusters):
-    min_dist = numpy.linalg.norm(y)
+    ''' Function for finding the closest cluster (by distance to center); used if a data point does not belong to the
+    previously considered tessellated hypercubes
+
+    :param y: phase space position of data point
+    :param clusters: list of identified clusters and all their parameters
+    :return: returns id of the closest cluster
+    '''
+    min_dist = numpy.linalg.norm(y) # set minimum as distance from origin
     closest_cluster =-1
-    for cluster in clusters:
-        dist = numpy.linalg.norm(cluster.center-y)
+    for cluster in clusters:    # loop through all clusters
+        dist = numpy.linalg.norm(cluster.center-y)  # calculate distance to local cluster center
         if dist<min_dist:
             closest_cluster=cluster.nr
     return closest_cluster
 
 def extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, prob_type='classic',nr_dev=7,plotting=True, first_refined=False):
-    """Big loop with calculation for the different systems
+    """Main loop for the calculation for different systems
 
     :param t: time vector
-    :param x: data matrix (look at to_burst or read_DI)
-    :param dim: integer, number of dimensions of the system (2 for type=="dissipation" and 3 for type=="burst")
-    :param M: number of tesselation discretisations per dimension
-    :param extr_dim: dimensions which amplitude will define the extreme event (0 for type=="dissipation" and 2 for type=="burst")
-    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov")
-    :param min_clusters: minimum number of clusters which breaks the deflation loop
-    :param max_it: maximum number of iterations which breaks the deflation loop
-    :param prob_type: string defining the type of probability to be calculated, either "classic" (default) or "backwards"
-    :param nr_dev: scalar defining how far away from the mean (multiples of the standard deviation) will be considered an extreme event
+    :param x: data matrix
+    :param M: number of tesselation sections per dimension
+    :param extr_dim: dimensions used for the definition of extreme events
+    :param type: string defining the type of system ("MFE_burst"; "MFE_dissipation"; "sine"; "LA"; "CDV"; "PM"; "kolmogorov"; "kolmogorov_kD")
+    :param min_clusters: minimum number of clusters which breaks the clustering and deflation loop
+    :param max_it: maximum number of iterations which breaks the clustering anddeflation loop
+    :param prob_type: string defining the type of probability to be calculated, either "classic" (default) or "backwards" (explained in probability(tess_ind, type))
+    :param nr_dev: scalar defining how far away from the mean (multiples of the standard deviation) will be considered an extreme event (default is 7)
     :param plotting: bool property defining whether to plot the data
-    :param first_refined: bool property defining whether the first clustering should be done with refinement
-    :return: none, runs calculations and plots results; can be modified to output the final deflated probability matrix
+    :param first_refined: bool property defining whether the first clustering should be done with refinement (default is False)
+    :return: returns list of clusters and their properties, the final hypercube to clusters affiliation matrix, the final
+    transition probability matrix; additionally plots and saves the statistical results
     """
-    dim = x.shape[1]
-    tess_ind, extr_id = tesselate(x, M, extr_dim,nr_dev)  # where extr_dim indicates the dimension by which the extreme event should be identified
+    dim = x.shape[1]    # number of dimensions of the phase space
+    tess_ind, extr_id = tesselate(x, M, extr_dim,nr_dev)  # tessellate the data
 
-    # # actual extreme events
+    # # Additional loop for finding and saving the "actual" extreme events of the data series
     # temp = np.zeros_like(t)
     # for i in range(len(t)):
     #     for j in range(len(extr_id[:,0])):
     #         if tess_ind[i,0]==extr_id[j,0] and tess_ind[i,1]==extr_id[j,1]:
     #             temp[i]=2
     #             print(x[i,:])
-    # np.save('actual_extreme_bad', temp)
-
-    # plt.figure()
-    # plt.scatter(extr_id[:,0], extr_id[:,1], s=200, marker='s', facecolors = 'None', edgecolor='red')
-    # plt.xlim([-0.5, 19.5])
-    # plt.ylim([-0.5, 19.5])
-    # plt.show()
+    # np.save('actual_extreme', temp)
 
     # Transition probability
     P = probability(tess_ind, prob_type)  # create sparse transition probability matrix
@@ -1542,38 +1506,35 @@ def extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_
     if plotting:
         plot_time_series(x,t,type)
         plot_phase_space(x,type)
-        # plot_tesselated_space(tess_ind, type),
+        # plot_tesselated_space(tess_ind, type)
 
-    tess_ind_trans = tess_to_lexi(tess_ind, M, dim)
-    P, extr_trans = prob_to_sparse(P, M, extr_id)  # translate matrix into 2D sparse array with points in lexicographic order, translates extr_id to lexicographic id
+    tess_ind_trans = tess_to_lexi(tess_ind, M, dim) # translate tessellated data points to lexicographic ordering
+    P, extr_trans = prob_to_sparse(P, M, extr_id)  # translate transition probability matrix into 2D sparse array with
+                # points in lexicographic order, also translates the extreme event points
 
     # Graph form
-    P_graph = to_graph_sparse(P)  # translate to dict readable for partition
+    P_graph = to_graph_sparse(P)  # translate matrix to dictionary readable for clustering algorithm
 
-    # Find 5 least probable transitions
-    # least_prob_tess = find_least_probable(P,5,M)
+    if plotting:
+        if dim<3:  # only for small systems - otherwise the matrix is too large
+            # Visualize unclustered graph
+            plot_graph(P_graph,False,type)
+            # Visualize probability matrix
+            plot_prob_matrix(P.toarray())
 
-    # if plotting:
-    #     if dim<4:  # the matrix will be too big
-    #         # Visualize unclustered graph
-    #         plot_graph(P_graph,False,type)
-    #         # Visualize probability matrix
-    #         plot_prob_matrix(P.toarray())
-
-    # plt.show()
-
-    # Clustering--
-    P_community = spectralopt.partition(P_graph, refine=first_refined)  # partition community P, default with refinement; returns dict where nodes are keys and values are community indices
-    D_sparse = community_aff_sparse(0, P_community, M, dim, 'first', 1)  # matrix of point-to-cluster affiliation
+    # Clustering - first step
+    P_community = spectralopt.partition(P_graph, refine=first_refined)  # First clustering iteration; returns dictionary
+                        # where hypercubes are keys and their affiliated communities are the values
+    D_sparse = community_aff_sparse(0, P_community, M, dim, 'first', 1)  # create matrix of point-to-cluster affiliation
 
     # Deflate the Markov matrix
     P1 = sp.coo_matrix((D_sparse.transpose() * P) * D_sparse)
-    print(np.sum(P1,axis=0).tolist())  # should be approx.(up to rounding errors) equal to number of nodes in each cluster
+    # print(np.sum(P1,axis=0).tolist())  # For checking purposes - should be approx.(up to rounding errors) equal to number of nodes in each cluster
 
     # Graph form
     P1_graph = to_graph(P1.toarray())
 
-    # more iterations
+    # For more iterations - enter the clustering loop
     P_community_old = P_community
     P_old = P1
     P_graph_old = P1_graph
@@ -1581,34 +1542,34 @@ def extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_
     int_id = 0
 
     # Deflation and refinement loop
-    while int(np.size(np.unique(np.array(list(P_community_old.values()))))) > min_clusters and int_id < max_it:  # condition
+    while int(np.size(np.unique(np.array(list(P_community_old.values()))))) > min_clusters and int_id < max_it:  # while the conditions are met
         int_id = int_id + 1
         print('iteration ', int_id)
         P_community_old, P_graph_old, P_old, D_nodes_in_clusters = clustering_loop_sparse(P_community_old, P_graph_old,
-                                                                                          P_old, D_nodes_in_clusters)
-        print(np.sum(D_nodes_in_clusters,axis=0).tolist())
+                                                                                          P_old, D_nodes_in_clusters)   # cluster and deflate the network
+        # print(np.sum(D_nodes_in_clusters,axis=0).tolist()) # For checking purposes - should be approx.(up to rounding errors) equal to number of nodes in each cluster
 
     if plotting:
         # Visualize clustered graph
-        # plot_graph(P_graph_old,True, type)
-
-        # color palette - linear blue
+        plot_graph(P_graph_old,True, type)
+        # Define color palette for visualizing different clusters
         palette = plt.get_cmap('viridis', D_nodes_in_clusters.shape[1])
 
-    # translate datapoints to cluster number affiliation
+    # Translate data points to cluster affiliation
     tess_ind_cluster = data_to_clusters(tess_ind_trans, D_nodes_in_clusters)
 
-    # cluster centers
+    # Calculate cluster centers
     coord_clust_centers, coord_clust_centers_tess = cluster_centers(x,tess_ind, tess_ind_cluster, D_nodes_in_clusters,dim)
 
-    # identify extreme clusters and those transitioning to them
+    # Identify extreme and precursor clusters
     extr_clusters, from_clusters = extr_iden(extr_trans, D_nodes_in_clusters, P_old)
-    print('From cluster: ', from_clusters, 'To extreme cluster: ', extr_clusters)
+    # print('From cluster: ', from_clusters, 'To extreme cluster: ', extr_clusters)
 
-    for i in range(P_old.shape[0]): # for all unique rows of the deflated probability matrix
+    for i in range(P_old.shape[0]): # for all clusters
         denom = np.sum(D_nodes_in_clusters,axis=0)
-        denom = denom[0,i]  # sum of nodes in cluster - we should divide by this
-        P_old.data[P_old.row == i] = P_old.data[P_old.row == i]/denom
+        denom = denom[0,i]  # Calculate number of all hypercubes in cluster
+        P_old.data[P_old.row == i] = P_old.data[P_old.row == i]/denom   # Correct the final transition probability matrix
+                    # to get probability values as defined by probability theory
 
     if plotting:
     #     # Plot time series with clusters
@@ -1628,27 +1589,25 @@ def extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_
         # if type == 'dissipation':
         #     plot_time_series_extr_iden(x[:,0], t, tess_ind_cluster, from_cluster, extr_cluster, type)
 
-        #plot tesselated phase space with clusters
-        # plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_ind_cluster, coord_clust_centers_tess, extr_clusters, palette)
+        # Plot tessellated phase space with clusters
+        plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_ind_cluster, coord_clust_centers_tess, extr_clusters, palette)
 
         # Visualize probability matrix
         # plot_prob_matrix(P_old.toarray())
 
-    # list of class type objects
-    clusters = []
+    clusters = []   # Create new list of class type objects
 
-    # define individual properties of clusters:
+    # Define individual properties of clusters:
     for i in range(D_nodes_in_clusters.shape[1]):   # loop through all clusters
-        nodes = D_nodes_in_clusters.row[D_nodes_in_clusters.col==i]
+        nodes = D_nodes_in_clusters.row[D_nodes_in_clusters.col==i] # Identify hypercubes that belong to them
 
         center_coord=coord_clust_centers[i,:]
         center_coord_tess=coord_clust_centers_tess[i,:]
 
-        # average time spend in cluster
+        # Calculate the average time spent in the cluster and the total number of instances
         avg_time, nr_instances = avg_time_in_cluster(i,tess_ind_cluster,t)
 
+        # Add the cluster with all its properties to the final list of clusters
         clusters.append(cluster(i, nodes, center_coord, center_coord_tess, avg_time, nr_instances, P_old, extr_clusters, from_clusters))
 
-    # for obj in clusters:
-    #     print(obj.nr, obj.nodes, obj.center, obj.is_extreme)
     return clusters, D_nodes_in_clusters, P_old      # returns list of clusters (class:cluster), matrix of cluster affiliation and deflated probability matrix (sparse)
