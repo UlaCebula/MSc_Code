@@ -1,14 +1,14 @@
-# comparison case  using k-means clustering for a simple sine wave case
+# Comparison case using k-means clustering - sine wave with artificial extreme events case
 # Urszula Golyska 2022
 
 from sklearn.cluster import KMeans
 from my_func import *
 
 def sine_data_generation(t0, tf, dt, nt_ex, rand_threshold=0.9, rand_amplitude=2, rand_scalar=1):
-    """Function for generating data of the sine wave system
+    """Function for generating data of the sine wave with artificial extreme events
 
-    :param t0: starting time, default t0=0
-    :param tf: final time
+    :param t0: starting time of data series
+    :param tf: final time of data series
     :param dt: time step
     :param nt_ex: number of time steps that the extreme event will last
     :param rand_threshold: threshold defining the probability of the extreme event
@@ -16,145 +16,121 @@ def sine_data_generation(t0, tf, dt, nt_ex, rand_threshold=0.9, rand_amplitude=2
     :param rand_scalar: scalar value defining the size of the extreme event
     :return: returns time vector t and matrix of data (of size 2*Nt)
     """
-    # time discretization
+    # Time discretization
     t = np.arange(t0,tf,dt)
 
-    # phase space
+    # Phase space dimensions
     u1 = np.sin(t)
     u2 = np.cos(t)
 
-    # generate random spurs
+    # Generate random extreme events
     for i in range(len(t)):
-        if u1[i]>=0.99 and abs(u2[i])<=0.015:
-            if np.random.rand() >=rand_threshold:
-                u1[i:i+nt_ex] = rand_scalar*u1[i:i+nt_ex]+rand_amplitude
-                u2[i:i+nt_ex] = rand_scalar*u2[i:i+nt_ex]+rand_amplitude
+        if u1[i]>=0.99 and abs(u2[i])<=0.015:   # If the trajectory is at a certain position
+            if np.random.rand() >=rand_threshold:   # randomness
+                # Shift the phase space parameters
+                u1[i:i+nt_ex] = rand_scalar*u1[i:i+nt_ex]+np.linspace(rand_amplitude/2, rand_amplitude, num=nt_ex)
+                u2[i:i+nt_ex] = rand_scalar*u2[i:i+nt_ex]+np.linspace(rand_amplitude/2, rand_amplitude, num=nt_ex)
 
-    u = np.hstack([np.reshape(u1, (len(t),1)),np.reshape(u2, (len(t),1))])  # combine into one matrix
+    u = np.hstack([np.reshape(u1, (len(t),1)),np.reshape(u2, (len(t),1))])  # Combine into one matrix
     return t, u
 
 plt.close('all') # close all open figures
 type='sine'
 
-# time discretization
+# Time discretization
 t0 = 0.0
 tf = 1000.0
 dt = 0.01
-nt_ex = 50  # number of time steps of the extreme event
 
-# extreme event parameters
+# Extreme event parameters
+nt_ex = 50  # number of time steps of the extreme event
 rand_threshold = 0.9
 rand_amplitude = 2
 rand_scalar = 1
 
+# Generate data
 t, x = sine_data_generation(t0, tf, dt, nt_ex, rand_threshold, rand_amplitude, rand_scalar)
 
-extr_dim = [0,1]   # define both phase space coordinates as extreme event
+extr_dim = [0,1]   # Both phase space coordinates will be used to define extreme events
+dim = x.shape[1]
 
-# Tesselation
-M = 20
+M = 20  # Number of tessellation sections per phase space dimension
+
 nr_dev = 2
 prob_type='classic'
-nr_clusters_vec=[2,5,8,10,15,20,27]
+nr_clusters_vec=[2,5,8,10,15,20,27] # different number of clusters to test
 
-##########LOOP START#################
-for nr_clusters in nr_clusters_vec:
-    dim = x.shape[1]
-    tess_ind, extr_id = tesselate(x, M, extr_dim,nr_dev)  # where extr_dim indicates the dimension by which the extreme event should be identified
-    # Transition probability
-    P = probability(tess_ind, prob_type)  # create sparse transition probability matrix
+tess_ind, extr_id = tesselate(x, M, extr_dim, nr_dev)  # tessellate the data
 
-    # plot_time_series(x,t,type)
-    # plot_phase_space(x,type)
-    # plot_tesselated_space(tess_ind, type),
+# Transition probability
+P = probability(tess_ind, prob_type)  # create sparse transition probability matrix
 
-    tess_ind_trans = tess_to_lexi(tess_ind, M, dim)
-    P, extr_trans = prob_to_sparse(P, M, extr_id)  # translate matrix into 2D sparse array with points in lexicographic order, translates extr_id to lexicographic id
+tess_ind_trans = tess_to_lexi(tess_ind, M, dim)  # translate tessellated data points to lexicographic ordering
+P, extr_trans = prob_to_sparse(P, M, extr_id)  # translate transition probability matrix into 2D sparse array with
+# points in lexicographic order, also translates the extreme event points
 
-    # Graph form
-    P_graph = to_graph_sparse(P)  # translate to dict readable for partition
+# Graph form
+P_graph = to_graph_sparse(P)  # translate to dict readable for partition
 
-    # Visualize unclustered graph
-    # plot_graph(P_graph,False,type)
-
-    # Clustering--
+for nr_clusters in nr_clusters_vec: # for a certain number of clusters
+    # Clustering - kmeans++
     kmeans = KMeans(init="k-means++",n_clusters=nr_clusters, n_init=10,max_iter=300,random_state=42)
-    kmeans.fit(x)
+    kmeans.fit(x)   # fitting directly the data series rather than the tessellated version
 
     D = np.empty((0,3), dtype=int)  # matrix of indices of sparse matrix
 
     nodes, indices = np.unique(tess_ind_trans, return_index=True)
 
-    for i in range(len(nodes)):   # for all unique nodes
-        row = [nodes[i], kmeans.labels_[indices[i]], 1]  # to prescribe nodes to communities
+    for i in range(len(nodes)):   # for all unique hypercubes
+        row = [nodes[i], kmeans.labels_[indices[i]], 1]  # prescribe hypercubes to communities
         D = np.vstack([D, row])
 
     D_sparse = sp.coo_matrix((D[:,2], (D[:,0],D[:,1])), shape=(M ** dim, nr_clusters))
 
     # Deflate the Markov matrix
     P1 = sp.coo_matrix((D_sparse.transpose() * P) * D_sparse)
-    print(np.sum(P1,axis=0).tolist())  # should be approx.(up to rounding errors) equal to number of nodes in each cluster
 
     # Graph form
     P1_graph = to_graph(P1.toarray())
-    # plot_graph(P1_graph,True, type)
 
-    # color palette - linear blue
+    # Define color palette for visualizing different clusters
     palette = plt.get_cmap('viridis', D_sparse.shape[1])
 
-    # translate datapoints to cluster number affiliation
-    tess_ind_cluster = kmeans.labels_
+    tess_ind_cluster = kmeans.labels_   # translate data points to affiliated cluster uid
 
-    # cluster centers
+    # Calculate cluster centers
     coord_clust_centers, coord_clust_centers_tess = cluster_centers(x,tess_ind, tess_ind_cluster, D_sparse,dim)
     coord_clust_centers = kmeans.cluster_centers_
 
-    # identify extreme clusters and those transitioning to them
-    extr_clusters, from_clusters = extr_iden(extr_trans, D_sparse, P1)
+    extr_clusters, from_clusters = extr_iden(extr_trans, D_sparse, P1) # identify extreme and precursor clusters
 
-    print('From cluster: ', from_clusters, 'To extreme cluster: ', extr_clusters)
-
-    for i in range(P1.shape[0]): # for all unique rows of the deflated probability matrix
+    for i in range(P1.shape[0]): # for all clusters
         denom = np.sum(D_sparse,axis=0)
-        denom = denom[0,i]  # sum of nodes in cluster - we should divide by this
-        P1.data[P1.row == i] = P1.data[P1.row == i]/denom
+        denom = denom[0,i]  # Calculate number of all hypercubes in cluster
+        P1.data[P1.row == i] = P1.data[P1.row == i]/denom # Correct the final transition probability matrix
+                    # to get probability values as defined by probability theory
 
-    # plot_time_series_clustered(x[:,0], t, tess_ind_cluster, palette, type)
 
     # Visualize phase space trajectory with clusters
     plot_phase_space_clustered(x, type, D_sparse, tess_ind_cluster, coord_clust_centers, extr_clusters,nr_dev, palette)
 
-    #plot tesselated phase space with clusters
+    # Plot tessellated phase space with clusters
     plot_phase_space_tess_clustered(tess_ind, type, D_sparse, tess_ind_cluster, coord_clust_centers_tess, extr_clusters, palette)
-
-    # Visualize probability matrix
-    # plot_prob_matrix(P1.toarray())
 
     # list of class type objects
     clusters = []
 
-    # define individual properties of clusters:
+    # Define individual properties of clusters:
     for i in range(D_sparse.shape[1]):   # loop through all clusters
-        nodes = D_sparse.row[D_sparse.col==i]
+        nodes = D_sparse.row[D_sparse.col==i] # Identify hypercubes that belong to them
 
         center_coord=coord_clust_centers[i,:]
         center_coord_tess=coord_clust_centers_tess[i,:]
 
-        # average time spend in cluster
+        # Calculate the average time spent in the cluster and the total number of instances
         avg_time, nr_instances = avg_time_in_cluster(i,tess_ind_cluster,t)
 
+        # Add the cluster with all its properties to the final list of clusters
         clusters.append(cluster(i, nodes, center_coord, center_coord_tess, avg_time, nr_instances, P1, extr_clusters, from_clusters))
 
 plt.show()
-
-#########LOOP END###############
-
-
-
-
-# plotting = True
-# min_clusters=15
-# max_it=5
-# clusters, D, P = extreme_event_identification_process(t,x,M,extr_dim,type, min_clusters, max_it, 'classic', 2,plotting, True)
-# calculate_statistics(extr_dim, clusters, P, tf)
-# plt.show()
