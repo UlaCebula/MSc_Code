@@ -6,12 +6,24 @@ import matplotlib.pyplot as plt
 import h5py
 
 def reconstruct_velocity(Nx, Ny, Nz, xx, yy, zz, a, alpha, gamma):
+    '''Function for reconstructing the velocity field of the MFE system from the given modes
+
+    :param Nx: size of domain in x direction (number of discretizations)
+    :param Ny: size of domain in y direction (number of discretizations)
+    :param Nz: size of domain in z direction (number of discretizations)
+    :param xx: grid in x direction
+    :param yy: grid in y direction
+    :param zz: grid in z direction
+    :param a: given modes
+    :param alpha, gamma: parameters of the system
+    :return: returns the reconstructed velocity field of the MFE system
+    '''
     N8 = 2 * np.sqrt(2) / np.sqrt((alpha**2 + gamma**2) * (4 * alpha**2 + 4 * gamma**2 + np.pi**2));
     uu = np.zeros((3, 9))
 
     u = np.zeros((Nx, Nz, Ny, 3, Nt)) #Nx*Ny*t for 2d
 
-    for it in range(Nt):    #np.linspace(39500, 41000, 10, endpoint=True, dtype=int):
+    for it in range(Nt):  # for all time steps
         iy = 0  # for 3D ->another for loop
         for ix in range(len(xx)):
             for iz in range(len(zz)):
@@ -19,7 +31,7 @@ def reconstruct_velocity(Nx, Ny, Nz, xx, yy, zz, a, alpha, gamma):
                 z = zz[iz]
                 y = yy[iy]
                 uu[:, 0] = [np.sqrt(2) * np.sin(np.pi * y / 2), 0, 0]
-                uu[:, 1] = [4 / np.sqrt(3) * (np.cos(np.pi * y / 2))**2 * np.cos(gamma * z), 0, 0] # the square has to be element-wise
+                uu[:, 1] = [4 / np.sqrt(3) * (np.cos(np.pi * y / 2))**2 * np.cos(gamma * z), 0, 0]
                 uu[:, 2] = [(2 / np.sqrt(4 * gamma**2 + np.pi**2)) * temp for temp in [0, 2 * gamma * np.cos(np.pi * y / 2) * np.cos(np.pi * z / 2), np.pi * np.sin(np.pi * y / 2) * np.sin(gamma * z)]]
                 uu[:, 3] = [0, 0, 4 / np.sqrt(3) * np.cos(alpha * x) * (np.cos(np.pi * y / 2))**2]
                 uu[:, 4] = [0, 0, 2 * np.sin(alpha * x) * np.sin(np.pi * y / 2)]
@@ -31,8 +43,19 @@ def reconstruct_velocity(Nx, Ny, Nz, xx, yy, zz, a, alpha, gamma):
                 u[ix, iz, iy,:, it] = np.matmul(uu,a[it,:])
     return u
 
-def compute_grad(Nx,Ny,Nz,Nt,dx,dy,dz,u):     # change to have the possibility of having Ny>1
-    # FD discretisation to find gradients
+def compute_grad(Nx,Ny,Nz,Nt,dx,dy,dz,u):
+    ''' Function for computing gradients using FD discretization; currently implemented only for 2D flows
+
+    :param Nx: size of domain in x direction (number of discretizations)
+    :param Ny: size of domain in y direction (number of discretizations)
+    :param Nz: size of domain in z direction (number of discretizations)
+    :param Nt: size of domain in time (number of discretizations)
+    :param dx: discretization step in x direction
+    :param dy: discretization step in y direction
+    :param dz: discretization step in z direction
+    :param u: matrix of velocity components in the domain
+    :return: returns the gradients of all 3 velocity components in the 3 directions
+    '''
     for i in range(Nt):
         if dy==0:   # for 2D flow
             dudx = np.zeros((Nx, Nz, Nt))
@@ -44,7 +67,7 @@ def compute_grad(Nx,Ny,Nz,Nt,dx,dy,dz,u):     # change to have the possibility o
             dwdx = np.zeros((Nx, Nz, Nt))
             dwdy = 0
             dwdz = np.zeros((Nx, Nz, Nt))
-            u_loc = np.squeeze(u[:, :, 0, i])   #u is squeezed already
+            u_loc = np.squeeze(u[:, :, 0, i])
             v_loc = np.squeeze(u[:, :, 1, i])
             w_loc = np.squeeze(u[:, :, 2, i])
 
@@ -95,14 +118,26 @@ def compute_grad(Nx,Ny,Nz,Nt,dx,dy,dz,u):     # change to have the possibility o
     return dudx, dudy, dudz, dvdx, dvdy, dvdz, dwdx, dwdy, dwdz
 
 def compute_diss(Nx, Ny, Nz, Nt, dx, dy, dz, u):
-    Diss = np.zeros((Nt,1))
-    nu = 1.  # doesn't matter because it's a scalar constant the same for all time instants
+    ''' Function for computing dissipation from the velocity field
 
-    # calculate gradients
+    :param Nx: size of domain in x direction (number of discretizations)
+    :param Ny: size of domain in y direction (number of discretizations)
+    :param Nz: size of domain in z direction (number of discretizations)
+    :param Nt: size of domain in time (number of discretizations)
+    :param dx: discretization step in x direction
+    :param dy: discretization step in y direction
+    :param dz: discretization step in z direction
+    :param u: matrix of velocity components in the domain
+    :return: returns the values of energy dissipation at each time step
+    '''
+    Diss = np.zeros((Nt,1))
+    nu = 1.  # viscosity; doesn't matter that much since it is a scalar, the same for all time instants
+
+    # Calculate gradients
     dudx, dudy, dudz, dvdx, dvdy, dvdz, dwdx, dwdy, dwdz = compute_grad(Nx, Ny, Nz, Nt, dx, dy, dz, u)
 
-    # dissipation
-    for i in range(Nt):
+    # Calculate dissipation
+    for i in range(Nt): # for all time steps
         if dy==0:   # 2D flow
             Diss[i] = nu * np.sum(dudx[:,:,i]*dudx[:,:,i])+np.sum(dudz[:,:,i]*dwdx[:,:,i])+np.sum(dwdx[:,:,i]*dudz[:,:,i])+...
             np.sum(dwdz[:,:,i]*dwdz[:,:,i])
@@ -113,9 +148,9 @@ def compute_diss(Nx, Ny, Nz, Nt, dx, dy, dz, u):
 
     return Diss
 
-###################MAIN################
 plt.close('all') # close all open figures
 
+# load pre-generated data
 hf = h5py.File('MFE_Re600_DATA.h5','r')
 Lx = np.array(hf.get('/Lx'))
 Lz = np.array(hf.get('/Lz'))
@@ -131,59 +166,52 @@ gamma = np.array(hf.get('/gamma'))
 a = np.array(hf.get('/u'))
 t = np.array(hf.get('/t'))
 
+# Discretization sizes
 Nt = np.size(t)
-
 Nx = 20
 Nz = 20
 Ny = 1 # for 2D flow
 
+# Create grid
 xx = np.linspace(0, Lx, Nx, endpoint=True)
 zz = np.linspace(0, Lz, Nz, endpoint=True)
 yy = [0] # for 2D flow
+
+# Discretization steps
 dx = xx[1]-xx[0]
 dz = zz[1]-zz[0]
 dy = 0 # for 2D flow
 
-########### Reconstruct velocity #################
+# Reconstruct velocity
 u = reconstruct_velocity(Nx, Ny, Nz, xx, yy, zz, a, alpha, gamma)
-np.save('MFE_Re600_velocity.npy', u)
+# np.save('MFE_Re600_velocity.npy', u)
 
-# Read and check velocity
-# u = np.load('MFE_Re600_velocity.npy')
-# t = np.arange(len(u[0,0,0,:]))
-u = np.squeeze(u[:,:,0,:,:]) #because we have Ny=1
-
-# u component in the middle of the domain
+# Checking - plot u component in the middle of the domain
 plt.figure()
-plt.plot(t, u[9,9,0,:])   #u velocity components at random middle point (9,9)
+plt.plot(t, u[9,9,0,:])
 plt.show()
 
-########### Calculate dissipation #################
-# u = np.load('MFE_Re600_velocity.npy')
-# Nt = np.size(u[0,0,0,:])
+# Calculate dissipation
 D = compute_diss(Nx, Nz, Nt, dx,dz, u)
-np.save('MFE_Re600_dissipation.npy', D)
+# np.save('MFE_Re600_dissipation.npy', D)
 
-# Read and check dissipation
-# D = np.load('MFE_Re600_dissipation.npy')
-# t = np.arange(len(D))
-
+# Plot dissipation
 plt.figure()
 plt.plot(t, D)
 plt.show()
 
-########### Calculate energy #################
-# u = np.load('MFE_Re600_velocity.npy')
-# Nt = np.size(u[0,0,0,:])
+# Calculate energy
 E = np.zeros((Nt,1))
 
 for i in range(Nt):
     E[i] = np.sum(u[:,:,0,i]**2)+np.sum(u[:,:,1,i]**2)+np.sum(u[:,:,2,i]**2)
-np.save('MFE_Re600_energy.npy', E)
+# np.save('MFE_Re600_energy.npy', E)
 
+# Plot energy
 plt.figure()
 plt.plot(t, E)
 
+# Plot energy - dissipation phase space
 plt.figure()
 plt.plot(E,D)
 plt.show()
