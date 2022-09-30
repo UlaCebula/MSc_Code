@@ -33,19 +33,18 @@ M = 20
 prob_type = 'classic'
 nr_clusters_vec = [5,10,15,20,27,35] # different number of clusters to test
 
-dim = x.shape[1]
-tess_ind, extr_id = tesselate(x, M, extr_dim, nr_dev)  # tessellate the data
-
-# Transition probability
-P = probability(tess_ind, prob_type)  # create sparse transition probability matrix
-tess_ind_trans = tess_to_lexi(tess_ind, M, dim)
-P, extr_trans = prob_to_sparse(P, M, extr_id)  # translate transition probability matrix into 2D sparse array with
-# points in lexicographic order, also translates the extreme event points
-
-# Graph form
-P_graph = to_graph_sparse(P)  # translate to dict readable for partition
-
 for nr_clusters in nr_clusters_vec:
+    dim = x.shape[1]
+    tess_ind, extr_id = tesselate(x, M, extr_dim, nr_dev)  # tessellate the data
+
+    # Transition probability
+    P = probability(tess_ind, prob_type)  # create sparse transition probability matrix
+    tess_ind_trans = tess_to_lexi(tess_ind, M, dim)
+    P, extr_trans = prob_to_sparse(P, M, extr_id)  # translate transition probability matrix into 2D sparse array with
+    # points in lexicographic order, also translates the extreme event points
+
+    # Graph form
+    P_graph = to_graph_sparse(P)  # translate to dict readable for partition
     # Clustering --  kmeans++
     kmeans = KMeans(init="k-means++",n_clusters=nr_clusters, n_init=10,max_iter=300,random_state=42)
     kmeans.fit(x) # fitting directly the data series rather than the tessellated version
@@ -107,7 +106,7 @@ for nr_clusters in nr_clusters_vec:
 
     # Calculate the statistics of the identified clusters
     calculate_statistics(extr_dim, clusters, P1, t[-1])
-    plt.show()
+    # plt.show()
 
     # Check on "new" data series
     # Here we take the old data series and feed it to the algorithm as if it was new

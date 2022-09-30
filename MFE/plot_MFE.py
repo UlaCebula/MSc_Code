@@ -152,8 +152,6 @@ plt.close('all') # close all open figures
 
 # load pre-generated data
 hf = h5py.File('MFE_Re600_DATA.h5','r')
-Lx = np.array(hf.get('/Lx'))
-Lz = np.array(hf.get('/Lz'))
 
 Lx = np.array(hf.get('/Lx'))
 Ly = 0  # 2D flow
@@ -188,7 +186,7 @@ u = reconstruct_velocity(Nx, Ny, Nz, xx, yy, zz, a, alpha, gamma)
 
 # Checking - plot u component in the middle of the domain
 plt.figure()
-plt.plot(t, u[9,9,0,:])
+plt.plot(t, u[9,9,0,0,:])
 plt.show()
 
 # Calculate dissipation

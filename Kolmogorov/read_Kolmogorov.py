@@ -238,7 +238,7 @@ I = I.reshape((len(Diss),1))
 x = np.append(Diss, I, axis=1)    # create matrix for specific parameters of the data series
 
 # Depending on the case - add another parameter
-# x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)     # case 1
+x = np.append(x,four_uu[1,0,:].reshape(len(t),1), axis=1)     # case 1
 # x = np.append(x,abs(four_uu_real[1,0,:]).reshape(len(t),1), axis=1)   # case 2
 # x = np.append(x,abs(four_uu_imag[1,0,:]).reshape(len(t),1), axis=1)   # case 3
 # x = np.append(x,four_uu[0,4,:].reshape(len(t),1), axis=1)     # case 4

@@ -420,10 +420,10 @@ def tess_to_lexi(x,N,dim):
     """
     x2 = np.zeros_like(x)
     for i in range(dim):  # loop through all phase space dimensions
-        if x.size>dim:    # for more than one data point
-            x2[:,i]=x[:,i]*N**i # contribution of i-th dimension to lexicographic tessellation id
-        else:
-            x2[i] = x[i]*N**i
+        # if x.size>dim:    # for more than one data point
+        x2[:,i]=x[:,i]*N**i # contribution of i-th dimension to lexicographic tessellation id
+        # else:
+        #     x2[i] = x[i]*N**i
 
     if x.size>dim:    # for more than one data point
         x_trans = np.sum(x2[:,:dim], axis=1)    # find lexicographic tessellation id
@@ -782,16 +782,23 @@ def cluster_centers(x,tess_ind, tess_ind_cluster, D_nodes_in_clusters,dim):
 
     pts, indices = np.unique(tess_ind, return_index=True, axis=0)       # unique points in phase space
     coord_clust_tess = np.zeros((D_nodes_in_clusters.shape[1], dim))
+
     num_clust = np.zeros((D_nodes_in_clusters.shape[1], 1))
+    for i in range(D_nodes_in_clusters.shape[1]):   # for each cluster
+        num_clust[i]=np.sum(D_nodes_in_clusters.col==i) # count number of points in cluster
 
     for i in range(len(pts[:, 0])):  # for each unique point
         loc_clust = tess_ind_cluster[indices[i]]    # identify local cluster
-        num_clust[loc_clust] += 1
         coord_clust_tess[loc_clust,:] += pts[i, :]
 
     for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
-        coord_clust_tess[i,:] = coord_clust_tess[i,:] / num_clust[i] # center in tessellated phase space is the average of the tessellated data series
-
+        if num_clust[i]!=0:
+            coord_clust_tess[i,:] = coord_clust_tess[i,:] / num_clust[i] # center in tessellated phase space is the average of the tessellated data series
+        else:
+            print('Overlapping clusters (due to tessellation)') # this is possible when using a clustering algorithm
+                # that does not require tessellating the phase space beforehand (such as the k-means); and two or more identified
+                # clusters fall into the same tessellated hypercube
+            coord_clust_tess[i,:] =[0,0]    # artificial!!
     return coord_clust, coord_clust_tess
 
 def plot_phase_space(x, type):
@@ -1083,8 +1090,8 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
         plt.minorticks_on()
         plt.xlabel("k")
         plt.ylabel("D")
-        plt.xlim([-0.5, 99.5])
-        plt.ylim([-0.5, 99.5])
+        plt.xlim([-0.5, 19.5])
+        plt.ylim([-0.5, 19.5])
 
     if type=='kolmogorov':
         x, indices = np.unique(tess_ind, return_index=True, axis=0) # unique hypercubes in tessellated space
@@ -1177,17 +1184,15 @@ def plot_phase_space_tess_clustered(tess_ind, type, D_nodes_in_clusters, tess_in
 
         plt.figure()
         ax = plt.axes(projection='3d')
-        for i in range(D_nodes_in_clusters.shape[1]):  # for all communities
-            ax.scatter3D(x[tess_ind_cluster == i, 0], x[tess_ind_cluster == i, 1], x[tess_ind_cluster == i, 2],
-                         color=palette.colors[i, :])
-            if i in extr_clusters:
-                t = ax.text(coord_centers_tess[i, 0], coord_centers_tess[i, 1], coord_centers_tess[i, 2], str(i), color='r',
-                            backgroundcolor='1')  # display cluster id
-                t.set_bbox(dict(facecolor='black', alpha=0.35))
-            else:
-                t = ax.text(coord_centers_tess[i, 0], coord_centers_tess[i, 1], coord_centers_tess[i, 2], str(i), color='white',
+        for i in range(len(x[:, 0])):  # for each unique point
+            loc_clust = tess_ind_cluster[indices[i]]
+            loc_col = palette.colors[loc_clust, :]
+            ax.scatter3D(x[i, 0], x[i, 1], x[i, 2], color=loc_col)
+
+        for i in range(D_nodes_in_clusters.shape[1]):  # for each cluster
+            t = ax.text(coord_centers_tess[i, 0], coord_centers_tess[i, 1], coord_centers_tess[i, 2], str(i), color='white',
                             backgroundcolor='1') # display cluster id
-                t.set_bbox(dict(facecolor='black', alpha=0.35))
+            t.set_bbox(dict(facecolor='black', alpha=0.35))
         ax.set_xlabel("x")
         ax.set_ylabel("y")
         ax.set_zlabel("z")
